@@ -83,6 +83,18 @@ git push -u origin main
 In Netlify Dashboard → Site Settings → Build & Deploy → Environment:
 
 Add these variables:
+
+**Firebase Variables:**
+```
+VITE_FIREBASE_API_KEY = your_actual_api_key
+VITE_FIREBASE_AUTH_DOMAIN = your_firebase_auth_domain
+VITE_FIREBASE_PROJECT_ID = your_project_id
+VITE_FIREBASE_STORAGE_BUCKET = your_storage_bucket
+VITE_FIREBASE_MESSAGING_SENDER_ID = your_messaging_sender_id
+VITE_FIREBASE_APP_ID = your_app_id
+```
+
+**Supabase Variables (if used):**
 ```
 VITE_SUPABASE_URL = https://ltddgjgneqwtpawlmfsf.databasepad.com
 VITE_SUPABASE_ANON_KEY = [your_anon_key]

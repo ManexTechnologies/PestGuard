@@ -269,7 +269,7 @@ const PestScanner: React.FC<PestScannerProps> = ({ onReportSaved, userId, onSign
               ref={fileInputRef}
               type="file"
               accept="image/*"
-              capture="environment"
+              capture
               onChange={handleImageUpload}
               className="hidden"
             />

@@ -31,14 +31,23 @@ const PestMap: React.FC<PestMapProps> = ({ reports, loading }) => {
 
   const filteredReports = useMemo(() => {
     return reports.filter(r => {
+      // Apply province filter
       if (selectedProvince && r.province !== selectedProvince) return false;
+      // Apply crop filter
       if (selectedCrop && r.crop_affected !== selectedCrop) return false;
+      // Apply severity filter
       if (selectedSeverity && r.severity !== selectedSeverity) return false;
+      // Apply search filter - search across multiple fields
       if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        return r.pest_name.toLowerCase().includes(q) ||
-               r.location_name.toLowerCase().includes(q) ||
-               r.province.toLowerCase().includes(q);
+        const q = searchQuery.toLowerCase().trim();
+        if (!q) return true; // Empty search matches everything
+        return (
+          r.pest_name?.toLowerCase().includes(q) ||
+          r.location_name?.toLowerCase().includes(q) ||
+          r.province?.toLowerCase().includes(q) ||
+          r.description?.toLowerCase().includes(q) ||
+          r.crop_affected?.toLowerCase().includes(q)
+        );
       }
       return true;
     });
@@ -98,11 +107,11 @@ const PestMap: React.FC<PestMapProps> = ({ reports, loading }) => {
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Filters - Responsive layout */}
       <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-        <div className="flex flex-wrap gap-3 items-center">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+          <div className="relative flex-1 min-w-0 sm:min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
             <input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -113,7 +122,7 @@ const PestMap: React.FC<PestMapProps> = ({ reports, loading }) => {
           <select
             value={selectedProvince}
             onChange={(e) => setSelectedProvince(e.target.value)}
-            className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-green-500"
+            className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-green-500 cursor-pointer"
           >
             <option value="">All Provinces</option>
             {PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
@@ -121,7 +130,7 @@ const PestMap: React.FC<PestMapProps> = ({ reports, loading }) => {
           <select
             value={selectedCrop}
             onChange={(e) => setSelectedCrop(e.target.value)}
-            className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-green-500"
+            className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-green-500 cursor-pointer"
           >
             <option value="">All Crops</option>
             {CROP_TYPES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -129,7 +138,7 @@ const PestMap: React.FC<PestMapProps> = ({ reports, loading }) => {
           <select
             value={selectedSeverity}
             onChange={(e) => setSelectedSeverity(e.target.value)}
-            className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-green-500"
+            className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-green-500 cursor-pointer"
           >
             <option value="">All Severity</option>
             <option value="critical">Critical</option>
@@ -138,7 +147,7 @@ const PestMap: React.FC<PestMapProps> = ({ reports, loading }) => {
             <option value="low">Low</option>
           </select>
           {hasFilters && (
-            <button onClick={clearFilters} className="flex items-center gap-1 px-3 py-2.5 text-sm text-gray-600 hover:text-red-600 transition-colors">
+            <button onClick={clearFilters} className="flex items-center justify-center gap-1 px-3 py-2.5 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 bg-gray-50 rounded-lg transition-colors">
               <X className="w-4 h-4" /> Clear
             </button>
           )}
@@ -153,9 +162,10 @@ const PestMap: React.FC<PestMapProps> = ({ reports, loading }) => {
         /* Map View */
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="col-span-1 lg:col-span-2">
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 relative overflow-hidden">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6 relative overflow-hidden">
               {/* SVG Map of Zimbabwe */}
-              <svg viewBox="0 0 100 100" className="w-full h-auto" style={{ maxHeight: '500px' }}>
+              <div className="w-full overflow-x-auto">
+                <svg viewBox="0 0 100 100" className="w-full h-auto min-h-[300px] sm:min-h-[400px]" style={{ minWidth: '300px', maxHeight: '500px' }}>
                 {/* Zimbabwe outline (simplified) */}
                 <path
                   d="M25,15 L55,10 L75,15 L85,25 L88,45 L82,55 L85,70 L75,85 L55,90 L40,85 L30,75 L20,60 L15,45 L18,30 Z"
@@ -205,8 +215,7 @@ const PestMap: React.FC<PestMapProps> = ({ reports, loading }) => {
                     </g>
                   );
                 })}
-              </svg>
-              {/* Legend */}
+              </svg>              </div>              {/* Legend */}
               <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t border-gray-100">
                 {[
                   { color: 'bg-red-500', label: 'Critical' },
@@ -224,8 +233,8 @@ const PestMap: React.FC<PestMapProps> = ({ reports, loading }) => {
           </div>
 
           {/* Side panel - Recent reports */}
-          <div className="space-y-4">
-            <h3 className="font-semibold text-gray-900">
+          <div className="space-y-4 min-h-[300px]">
+            <h3 className="font-semibold text-gray-900 text-base">
               {selectedProvince ? `Reports in ${selectedProvince}` : 'Recent Reports'}
             </h3>
             <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
@@ -239,22 +248,22 @@ const PestMap: React.FC<PestMapProps> = ({ reports, loading }) => {
                   <div
                     key={report.id}
                     onClick={() => setSelectedReport(selectedReport?.id === report.id ? null : report)}
-                    className={`bg-white rounded-xl border p-4 cursor-pointer transition-all hover:shadow-md ${
+                    className={`bg-white rounded-xl border p-3 sm:p-4 cursor-pointer transition-all hover:shadow-md text-sm sm:text-base ${
                       selectedReport?.id === report.id ? 'border-green-300 ring-2 ring-green-100' : 'border-gray-200'
                     }`}
                   >
                     <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-2.5 h-2.5 rounded-full ${SEVERITY_DOT_COLORS[report.severity] || 'bg-gray-400'}`} />
-                        <h4 className="font-medium text-gray-900 text-sm">{report.pest_name}</h4>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${SEVERITY_DOT_COLORS[report.severity] || 'bg-gray-400'}`} />
+                        <h4 className="font-medium text-gray-900 text-sm truncate">{report.pest_name}</h4>
                       </div>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[report.status] || ''}`}>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap flex-shrink-0 ml-2 ${STATUS_COLORS[report.status] || ''}`}>
                         {report.status}
                       </span>
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-gray-500">
-                      <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{report.location_name}</span>
-                      <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{formatTime(report.created_at)}</span>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-3 text-xs text-gray-500">
+                      <span className="flex items-center gap-1 truncate"><MapPin className="w-3 h-3 flex-shrink-0" /><span className="truncate">{report.location_name}</span></span>
+                      <span className="flex items-center gap-1 whitespace-nowrap"><Clock className="w-3 h-3 flex-shrink-0" />{formatTime(report.created_at)}</span>
                     </div>
                     {selectedReport?.id === report.id && (
                       <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
@@ -281,46 +290,47 @@ const PestMap: React.FC<PestMapProps> = ({ reports, loading }) => {
         /* List View */
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-full">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
-                  <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase">Pest</th>
-                  <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase">Crop</th>
-                  <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase">Location</th>
-                  <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase">Severity</th>
-                  <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase">Reported</th>
+                  <th className="text-left px-3 sm:px-5 py-3 text-xs font-medium text-gray-500 uppercase">Pest</th>
+                  <th className="text-left px-3 sm:px-5 py-3 text-xs font-medium text-gray-500 uppercase hidden sm:table-cell">Crop</th>
+                  <th className="text-left px-3 sm:px-5 py-3 text-xs font-medium text-gray-500 uppercase">Location</th>
+                  <th className="text-left px-3 sm:px-5 py-3 text-xs font-medium text-gray-500 uppercase">Severity</th>
+                  <th className="text-left px-3 sm:px-5 py-3 text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Status</th>
+                  <th className="text-left px-3 sm:px-5 py-3 text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Reported</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filteredReports.map((report) => (
                   <tr key={report.id} className="hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => setSelectedReport(report)}>
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-2">
-                        <Bug className="w-4 h-4 text-gray-400" />
-                        <div>
-                          <p className="font-medium text-gray-900 text-sm">{report.pest_name}</p>
-                          <p className="text-xs text-gray-500">{report.pest_type}</p>
+                    <td className="px-3 sm:px-5 py-3.5">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Bug className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                        <div className="min-w-0">
+                          <p className="font-medium text-gray-900 text-sm truncate">{report.pest_name}</p>
+                          <p className="text-xs text-gray-500 truncate">{report.pest_type}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-3.5 text-sm text-gray-600">{report.crop_affected}</td>
-                    <td className="px-5 py-3.5">
-                      <p className="text-sm text-gray-900">{report.location_name}</p>
-                      <p className="text-xs text-gray-500">{report.province}</p>
+                    <td className="px-3 sm:px-5 py-3.5 text-sm text-gray-600 hidden sm:table-cell">{report.crop_affected}</td>
+                    <td className="px-3 sm:px-5 py-3.5">
+                      <p className="text-sm text-gray-900 truncate">{report.location_name}</p>
+                      <p className="text-xs text-gray-500 truncate">{report.province}</p>
                     </td>
-                    <td className="px-5 py-3.5">
+                    <td className="px-3 sm:px-5 py-3.5">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${SEVERITY_COLORS[report.severity] || ''}`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${SEVERITY_DOT_COLORS[report.severity] || ''}`} />
-                        {report.severity}
+                        <span className="hidden sm:inline">{report.severity}</span>
+                        <span className="sm:hidden">{report.severity.charAt(0).toUpperCase()}</span>
                       </span>
                     </td>
-                    <td className="px-5 py-3.5">
+                    <td className="px-3 sm:px-5 py-3.5 hidden md:table-cell">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[report.status] || ''}`}>
                         {report.status}
                       </span>
                     </td>
-                    <td className="px-5 py-3.5 text-sm text-gray-500 whitespace-nowrap">{formatTime(report.created_at)}</td>
+                    <td className="px-3 sm:px-5 py-3.5 text-sm text-gray-500 whitespace-nowrap hidden lg:table-cell">{formatTime(report.created_at)}</td>
                   </tr>
                 ))}
               </tbody>
