@@ -336,7 +336,7 @@ const PestScanner: React.FC<PestScannerProps> = ({ onReportSaved, userId, onSign
               ) : (
                 <>
                   <Upload className="w-5 h-5" />
-                  Identify Pest
+                  {imageBase64 ? 'Identify Pest from Image' : 'Identify Pest'}
                 </>
               )}
             </button>

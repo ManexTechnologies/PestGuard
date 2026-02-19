@@ -45,7 +45,12 @@ export function identifyPestLocally(params: {
 }): LocalIdentificationResult {
   const { imageBase64, description, cropType } = params;
 
-  // Validate that at least description is provided
+  // If only image is provided without description, suggest common pests
+  if (imageBase64 && (!description || description.trim().length === 0)) {
+    return getCommonPestsFromImage(cropType);
+  }
+
+  // If neither image nor description provided
   if (!description || description.trim().length === 0) {
     return {
       identified: false,
@@ -198,6 +203,104 @@ export function identifyPestLocally(params: {
   
   // Generate prevention tips based on pest type
   const preventionTips = generatePreventionTips(topPest);
+  
+  return {
+    identified: true,
+    pests,
+    treatments,
+    severity,
+    urgency: urgencyMessages[severity] || 'Monitor and take action as needed.',
+    preventionTips,
+    additionalNotes: `Identification confidence: ${pests[0].confidence}%. ${imageBase64 ? 'Image provided.' : 'No image provided.'} ${description ? `Based on: "${description}"` : ''} For confirmation, consult your local extension officer.`
+  };
+}
+
+/**
+ * When only an image is provided without description,
+ * suggest common pests from the knowledge base
+ */
+function getCommonPestsFromImage(cropType?: string): LocalIdentificationResult {
+  // Filter pests by crop type if provided
+  let filteredPests = KNOWLEDGE_BASE;
+  
+  if (cropType) {
+    const cropLower = cropType.toLowerCase();
+    filteredPests = KNOWLEDGE_BASE.filter(pest =>
+      pest.cropAffected.some(c => 
+        c.toLowerCase() === cropLower || 
+        c.toLowerCase().includes(cropLower)
+      )
+    );
+  }
+  
+  // Sort by severity (critical > high > medium > low) and return top 3
+  const sortedByImportance = filteredPests.sort((a, b) => {
+    const severityOrder: Record<string, number> = {
+      critical: 0,
+      high: 1,
+      medium: 2,
+      low: 3
+    };
+    return (severityOrder[a.severity] || 4) - (severityOrder[b.severity] || 4);
+  });
+  
+  const topMatches = sortedByImportance.slice(0, 3);
+  
+  if (topMatches.length === 0) {
+    return {
+      identified: false,
+      pests: [],
+      treatments: [],
+      severity: 'low',
+      urgency: 'No pests found for this crop type.',
+      preventionTips: [
+        'Not applicable for this crop selection'
+      ],
+      additionalNotes: 'Unable to find matching pests for your crop. Please describe the pest or check the crop selection.'
+    };
+  }
+  
+  // Create matches from top pests
+  const pests: LocalPestMatch[] = topMatches.map(pest => ({
+    name: pest.name,
+    scientificName: pest.scientificName,
+    type: pest.type,
+    confidence: 35 + (Math.random() * 30), // Lower confidence for image-only identification
+    description: pest.description,
+    damageSymptoms: pest.damageSymptoms,
+    lifeCycle: `Active during ${pest.season}`
+  }));
+  
+  const topPest = topMatches[0];
+  const treatments: LocalTreatmentRec[] = topPest.treatments.map(t => ({
+    name: t.name,
+    type: t.type,
+    description: t.description,
+    effectiveness: t.effectiveness,
+    cost: t.cost,
+    safetyWarning: t.safetyWarning
+  }));
+  
+  const severity = topPest.severity;
+  const urgencyMessages: Record<string, string> = {
+    critical: 'Immediate action required! This pest can cause complete crop loss if not controlled urgently.',
+    high: 'Urgent action recommended. This pest can cause significant damage within days.',
+    medium: 'Action needed within a week. Monitor the situation and prepare to treat.',
+    low: 'Monitor the situation. This pest causes limited damage but should still be managed.'
+  };
+  
+  const preventionTips = generatePreventionTips(topPest);
+  
+  return {
+    identified: true,
+    pests,
+    treatments,
+    severity,
+    urgency: urgencyMessages[severity] || 'Monitor and take action as needed.',
+    preventionTips,
+    additionalNotes: `Based on your uploaded image${cropType ? ` and ${cropType} crop` : ''}, here are the most common pests to check against in your photo. Please compare your pest with the symptoms listed to confirm the identification. For better accuracy, please describe what you see in the image (color, size, damage type, etc.).`
+  };
+}
   
   return {
     identified: true,
