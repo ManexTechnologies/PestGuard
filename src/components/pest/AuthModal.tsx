@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Mail, Lock, User, MapPin, Phone, Loader2, Eye, EyeOff, CheckCircle, Sprout, AlertTriangle } from 'lucide-react';
+import { X, Mail, Lock, User, MapPin, Phone, Loader2, Eye, EyeOff, CheckCircle, Bug, AlertTriangle } from 'lucide-react';
 import { signup, login, type User as AuthUser, type FarmerProfile } from '@/lib/auth';
 import { PROVINCES, CROP_TYPES } from '@/data/pestData';
 
@@ -163,7 +163,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuccess })
         <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-green-600 to-emerald-500 rounded-xl flex items-center justify-center">
-              <Sprout className="w-5 h-5 text-white" />
+              <Bug className="w-5 h-5 text-white" />
             </div>
             <div>
               <h3 className="font-bold text-gray-900">

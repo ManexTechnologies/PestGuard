@@ -249,30 +249,32 @@ const PestScanner: React.FC<PestScannerProps> = ({ onReportSaved, userId, onSign
                 </button>
               </div>
             ) : (
-              <div
-                onClick={() => { if (userId) fileInputRef.current?.click(); else onSignInRequired?.(); }}
-                className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all group h-48 md:h-64 flex flex-col items-center justify-center ${
-                  userId
-                    ? 'border-gray-300 hover:border-green-400 hover:bg-green-50/50'
-                    : 'border-gray-300 bg-gray-50 cursor-not-allowed'
-                }`}
-              >
-                <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <Camera className="w-8 h-8 text-green-600" />
+              <>
+                <div
+                  onClick={() => { if (userId) { fileInputRef.current?.click(); } else { onSignInRequired?.(); } }}
+                  className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all group h-48 md:h-64 flex flex-col items-center justify-center ${
+                    userId
+                      ? 'border-gray-300 hover:border-green-400 hover:bg-green-50/50'
+                      : 'border-gray-300 bg-gray-50 cursor-not-allowed'
+                  }`}
+                >
+                  <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <Camera className="w-8 h-8 text-green-600" />
+                  </div>
+                  <p className="font-medium text-gray-700 mb-1">Take or Upload Photo</p>
+                  <p className="text-sm text-gray-500">Tap to open camera or choose from gallery</p>
+                  <p className="text-xs text-gray-400 mt-2">JPG, PNG up to 10MB - auto-compressed for fast upload</p>
                 </div>
-                <p className="font-medium text-gray-700 mb-1">Take or Upload Photo</p>
-                <p className="text-sm text-gray-500">Tap to open camera or choose from gallery</p>
-                <p className="text-xs text-gray-400 mt-2">JPG, PNG up to 10MB - auto-compressed for fast upload</p>
-              </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                  aria-hidden="true"
+                />
+              </>
             )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              capture
-              onChange={handleImageUpload}
-              className="hidden"
-            />
           </div>
 
           {/* Description & Details */}

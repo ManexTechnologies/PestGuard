@@ -80,7 +80,7 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     cropAffected: ['Maize', 'Sorghum', 'Wheat'],
     description: 'One of the most destructive pests in sub-Saharan Africa. Larvae feed on leaves, tassels, and ears of maize, causing severe yield losses up to 70%.',
     damageSymptoms: ['Ragged holes in leaves', 'Sawdust-like frass in leaf whorls', 'Damaged tassels and ears', 'Windowpane feeding on young leaves'],
-    imageUrl: '/src/assets/Fall Armyworm.jpeg',
+    imageUrl: '/assets/Fall Armyworm.jpeg',
     severity: 'critical',
     season: 'October - March (rainy season)',
     treatments: [
@@ -98,7 +98,7 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     cropAffected: ['Cotton', 'Tobacco', 'Vegetables'],
     description: 'A major pest of cotton and many other crops. Larvae bore into bolls, fruits, and pods causing direct damage to harvestable parts.',
     damageSymptoms: ['Holes in cotton bolls', 'Damaged fruit and pods', 'Frass around entry holes', 'Premature boll opening'],
-    imageUrl: '/src/assets/African Bollworm.jpeg',
+    imageUrl: '/assets/African Bollworm.jpeg',
     severity: 'high',
     season: 'November - April',
     treatments: [
@@ -115,7 +115,7 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     cropAffected: ['Tobacco', 'Cotton', 'Vegetables'],
     description: 'Tiny mites that suck plant sap from leaves, causing yellowing and bronzing. Thrives in hot, dry conditions common in Zimbabwe.',
     damageSymptoms: ['Yellow stippling on leaves', 'Fine webbing on leaf undersides', 'Bronzed or brown leaves', 'Leaf drop in severe cases'],
-    imageUrl: '/src/assets/Red Spider Mite.jpeg',
+    imageUrl: '/assets/Red Spider Mite.jpeg',
     severity: 'high',
     season: 'August - November (dry season)',
     treatments: [
@@ -133,7 +133,7 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     cropAffected: ['Maize', 'Sorghum', 'Sugarcane'],
     description: 'Larvae bore into stems of cereal crops, causing dead hearts in young plants and stem breakage in mature plants.',
     damageSymptoms: ['Dead heart in young plants', 'Bore holes in stems', 'Frass at stem base', 'Stem breakage and lodging'],
-    imageUrl: '/src/assets/Stalk Borer.jpeg',
+    imageUrl: '/assets/Stalk Borer.jpeg',
     severity: 'high',
     season: 'November - February',
     treatments: [
@@ -150,7 +150,7 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     cropAffected: ['Maize', 'Vegetables', 'Wheat'],
     description: 'Small sap-sucking insects that form colonies on leaves and stems. They excrete honeydew which promotes sooty mold growth.',
     damageSymptoms: ['Curled and yellowed leaves', 'Sticky honeydew on leaves', 'Sooty mold growth', 'Stunted plant growth'],
-    imageUrl: '/src/assets/Aphids.jpeg',
+    imageUrl: '/assets/Aphids.jpeg',
     severity: 'medium',
     season: 'Year-round, peaks in warm weather',
     treatments: [
@@ -168,7 +168,7 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     cropAffected: ['Maize', 'Vegetables', 'Tobacco'],
     description: 'Nocturnal caterpillars that cut seedlings at ground level. Most damaging to newly planted crops.',
     damageSymptoms: ['Seedlings cut at soil level', 'Missing plants in rows', 'Larvae curled in soil near damaged plants', 'Wilted fallen seedlings'],
-    imageUrl: '/src/assets/Cutworm.jpeg',
+    imageUrl: '/assets/Cutworm.jpeg',
     severity: 'medium',
     season: 'September - December (planting season)',
     treatments: [
@@ -185,7 +185,7 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     cropAffected: ['Tobacco', 'Cotton', 'Vegetables'],
     description: 'Tiny white flying insects that suck sap and transmit viral diseases. A major vector for tobacco leaf curl virus.',
     damageSymptoms: ['White flies when plants disturbed', 'Yellowing leaves', 'Sticky honeydew', 'Leaf curl from viral transmission'],
-    imageUrl: '/src/assets/Whitefly.jpeg',
+    imageUrl: '/assets/Whitefly.jpeg',
     severity: 'high',
     season: 'Year-round in warm areas',
     treatments: [
@@ -203,7 +203,7 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     cropAffected: ['Maize', 'Sorghum', 'Wheat'],
     description: 'The most important storage pest of maize in Zimbabwe. Adults bore into grain kernels to lay eggs, and larvae feed inside.',
     damageSymptoms: ['Small round holes in grain', 'Powdery grain dust', 'Grain weight loss', 'Heating of stored grain'],
-    imageUrl: '/src/assets/Maize Weevil.jpeg',
+    imageUrl: '/assets/Maize Weevil.jpeg',
     severity: 'high',
     season: 'Post-harvest (April - September)',
     treatments: [
@@ -221,7 +221,7 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     cropAffected: ['Vegetables'],
     description: 'A major pest of brassica crops (cabbage, rape, kale). Larvae create window-pane damage on leaves.',
     damageSymptoms: ['Window-pane holes in leaves', 'Small green larvae on leaf undersides', 'Skeletonized leaves', 'Reduced head formation'],
-    imageUrl: '/src/assets/Diamondback moth.jpeg',
+    imageUrl: '/assets/Diamondback moth.jpeg',
     severity: 'medium',
     season: 'Year-round, peaks in dry season',
     treatments: [
@@ -238,7 +238,7 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     cropAffected: ['Maize', 'Sugarcane', 'Groundnuts'],
     description: 'Subterranean insects that attack crop roots and stems. Particularly damaging during dry spells when plants are stressed.',
     damageSymptoms: ['Wilting despite adequate moisture', 'Mud tubes on stems', 'Hollowed roots and stems', 'Termite mounds near fields'],
-    imageUrl: '/src/assets/Termites.jpeg',
+    imageUrl: '/assets/Termites.jpeg',
     severity: 'medium',
     season: 'Year-round, worse in dry season',
     treatments: [
@@ -255,7 +255,7 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     cropAffected: ['Tobacco'],
     description: 'Larvae feed on tobacco buds and young leaves, causing significant damage to leaf quality and yield.',
     damageSymptoms: ['Damaged terminal buds', 'Holes in young leaves', 'Frass in leaf whorls', 'Distorted leaf growth'],
-    imageUrl: '/src/assets/Tobacco budworm.jpeg',
+    imageUrl: '/assets/Tobacco budworm.jpeg',
     severity: 'high',
     season: 'October - February',
     treatments: [
@@ -272,7 +272,7 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     cropAffected: ['Wheat', 'Sorghum', 'Maize'],
     description: 'The most destructive bird pest in Africa. Massive flocks can devastate grain crops in hours. A single flock can number millions.',
     damageSymptoms: ['Stripped grain heads', 'Broken stems from bird weight', 'Rapid crop loss', 'Large flocks visible at dawn/dusk'],
-    imageUrl: '/src/assets/Quelea birds.jpeg',
+    imageUrl: '/assets/Quelea birds.jpeg',
     severity: 'critical',
     season: 'March - June (grain ripening)',
     treatments: [
@@ -289,7 +289,7 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     cropAffected: ['Citrus', 'Vegetables'],
     description: 'Females lay eggs in ripening fruit. Larvae feed inside, causing fruit rot and drop. Major export quarantine pest.',
     damageSymptoms: ['Small puncture marks on fruit', 'Soft spots on fruit', 'Larvae inside fruit', 'Premature fruit drop'],
-    imageUrl: '/src/assets/Fruit fly.jpeg',
+    imageUrl: '/assets/Fruit fly.jpeg',
     severity: 'medium',
     season: 'October - April (fruiting season)',
     treatments: [
@@ -306,7 +306,7 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     cropAffected: ['Cotton'],
     description: 'Bugs that feed on cotton seeds, staining the lint and reducing quality. Major economic pest of cotton in Zimbabwe.',
     damageSymptoms: ['Stained cotton lint', 'Shriveled seeds', 'Bug colonies on open bolls', 'Reduced lint quality'],
-    imageUrl: '/src/assets/Cotton stainer.jpeg',
+    imageUrl: '/assets/Cotton stainer.jpeg',
     severity: 'high',
     season: 'February - May (boll opening)',
     treatments: [
@@ -323,7 +323,7 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     cropAffected: ['Vegetables'],
     description: 'Small fly larvae that tunnel between leaf surfaces creating visible serpentine mines. Reduces photosynthesis and crop quality.',
     damageSymptoms: ['Serpentine white trails on leaves', 'Blotch mines on leaves', 'Premature leaf drop', 'Reduced plant vigor'],
-    imageUrl: '/src/assets/Leaf miner.jpeg',
+    imageUrl: '/assets/Leaf miner.jpeg',
     severity: 'low',
     season: 'Year-round in irrigated areas',
     treatments: [
@@ -340,7 +340,7 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     cropAffected: ['Vegetables', 'Tobacco'],
     description: 'Tiny insects that rasp leaf surfaces and suck sap. Can transmit tospoviruses. Common on onions and tobacco.',
     damageSymptoms: ['Silver streaks on leaves', 'Distorted leaves', 'Brown leaf tips', 'Reduced bulb size in onions'],
-    imageUrl: '/src/assets/Thrips.jpeg',
+    imageUrl: '/assets/Thrips.jpeg',
     severity: 'medium',
     season: 'Dry season peaks',
     treatments: [
@@ -357,7 +357,7 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     cropAffected: ['Maize', 'Wheat', 'Sorghum', 'Vegetables'],
     description: 'Migratory locusts form devastating swarms that can strip entire fields bare. A national emergency pest requiring coordinated response.',
     damageSymptoms: ['Complete defoliation', 'Stripped bark on young plants', 'Massive swarms visible', 'Total crop loss possible'],
-    imageUrl: '/src/assets/Locust.jpeg',
+    imageUrl: '/assets/Locust.jpeg',
     severity: 'critical',
     season: 'Variable, linked to rainfall patterns',
     treatments: [
@@ -374,7 +374,7 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     cropAffected: ['Maize', 'Wheat', 'Sorghum'],
     description: 'A storage pest whose larvae develop inside grain kernels. Can cause significant losses in stored grain if not managed.',
     damageSymptoms: ['Small moths flying around stored grain', 'Round emergence holes in grain', 'Grain dust and webbing', 'Reduced grain weight'],
-    imageUrl: '/src/assets/Grain moth.jpeg',
+    imageUrl: '/assets/Grain moth.jpeg',
     severity: 'medium',
     season: 'Post-harvest storage period',
     treatments: [
@@ -391,7 +391,7 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     cropAffected: ['Livestock'],
     description: 'Blood-feeding flies that transmit trypanosomiasis (sleeping sickness) to cattle and humans. Found in river valleys and woodland areas.',
     damageSymptoms: ['Emaciated cattle', 'Reduced milk production', 'Abortion in pregnant animals', 'Progressive weakness and death'],
-    imageUrl: '/src/assets/Tsetse fly.jpeg',
+    imageUrl: '/assets/Tsetse fly.jpeg',
     severity: 'high',
     season: 'Year-round in endemic areas',
     treatments: [
@@ -408,7 +408,7 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     cropAffected: ['Sugarcane'],
     description: 'Major pest of sugarcane in the lowveld. Larvae bore into cane stalks reducing sugar content and causing stalk breakage.',
     damageSymptoms: ['Bore holes in cane stalks', 'Red discoloration inside stalks', 'Dead hearts in young cane', 'Reduced sugar recovery'],
-    imageUrl: '/src/assets/Stem borer.jpeg',
+    imageUrl: '/assets/Stem borer.jpeg',
     severity: 'high',
     season: 'Year-round, peaks in warm wet season',
     treatments: [
