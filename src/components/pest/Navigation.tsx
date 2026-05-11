@@ -30,7 +30,6 @@ const Navigation: React.FC<NavigationProps> = ({
   const [userMenuOpen, setUserMenuOpen] = React.useState(false);
   const userMenuRef = React.useRef<HTMLDivElement>(null);
 
-  // Close user menu on outside click
   React.useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
@@ -41,71 +40,69 @@ const Navigation: React.FC<NavigationProps> = ({
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  const initials = profile?.full_name
-    ? profile.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-    : 'U';
+  const initials = (profile?.full_name || user?.email || 'User')
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
 
   return (
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-green-100 shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-14 sm:h-16">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => onTabChange('home')}>
-            <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-400 rounded-xl flex items-center justify-center shadow-lg shadow-green-200">
-              <Bug className="w-6 h-6 text-white" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-green-500 to-emerald-400 rounded-xl flex items-center justify-center shadow-lg shadow-green-200">
+              <Bug className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
             <div className="hidden sm:block">
-              <h1 className="text-lg font-bold text-gray-900 leading-tight">PestGuard</h1>
+              <h1 className="text-base sm:text-lg font-bold text-gray-900 leading-tight">PestGuard</h1>
               <p className="text-[10px] text-green-600 font-medium -mt-0.5 tracking-wide">ZIMBABWE</p>
             </div>
           </div>
 
-          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-1">
             {NAV_ITEMS.map((item) => (
               <button
                 key={item.id}
                 onClick={() => onTabChange(item.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                className={`flex items-center gap-2 px-3 py-2.5 md:px-4 md:py-2 rounded-lg text-sm font-medium transition-all duration-200 min-h-[44px] ${
                   activeTab === item.id
                     ? 'bg-green-50 text-green-700 shadow-sm'
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }`}
               >
                 {item.icon}
-                {item.label}
+                <span className="hidden lg:inline">{item.label}</span>
               </button>
             ))}
           </nav>
 
-          {/* Right side: Emergency + Auth */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             <button
               onClick={onEmergencyClick}
-              className="flex items-center gap-2 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-sm font-medium transition-all border border-red-200"
+              className="flex items-center justify-center p-2 sm:px-3 sm:py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-sm font-medium transition-all border border-red-200 min-w-[44px] min-h-[44px]"
             >
-              <Phone className="w-4 h-4" />
-              <span className="hidden sm:inline">Emergency</span>
+              <Phone className="w-5 h-5" />
+              <span className="hidden sm:inline ml-1">Emergency</span>
             </button>
 
-            {/* Auth Button / User Menu */}
             {user ? (
               <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors min-h-[44px]"
                 >
                   <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm">
                     {initials}
                   </div>
                   <div className="hidden lg:block text-left">
-                    <p className="text-sm font-medium text-gray-900 leading-tight">{profile?.full_name || 'Farmer'}</p>
+                    <p className="text-sm font-medium text-gray-900 leading-tight">{profile?.full_name || user?.email || 'User'}</p>
                     <p className="text-[10px] text-gray-500 leading-tight">{profile?.province || user.email}</p>
                   </div>
                   <ChevronDown className={`w-4 h-4 text-gray-400 hidden lg:block transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
 
-                {/* Dropdown */}
                 {userMenuOpen && (
                   <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl border border-gray-200 shadow-xl py-2 z-50">
                     <div className="px-4 py-3 border-b border-gray-100">
@@ -144,28 +141,26 @@ const Navigation: React.FC<NavigationProps> = ({
             ) : (
               <button
                 onClick={onSignInClick}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-all shadow-sm"
+                className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-all shadow-sm min-h-[44px]"
               >
                 <User className="w-4 h-4" />
                 <span className="hidden sm:inline">Sign In</span>
               </button>
             )}
 
-            {/* Mobile Menu Toggle */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+              className="md:hidden p-2.5 text-gray-600 hover:bg-gray-100 rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
             >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-green-100 bg-white/95 backdrop-blur-md">
-          <nav className="px-4 py-3 space-y-1">
+          <nav className="px-3 sm:px-4 py-3 space-y-1">
             {NAV_ITEMS.map((item) => (
               <button
                 key={item.id}
@@ -173,7 +168,7 @@ const Navigation: React.FC<NavigationProps> = ({
                   onTabChange(item.id);
                   setMobileMenuOpen(false);
                 }}
-                className={`flex items-center gap-3 w-full px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                className={`flex items-center gap-3 w-full px-4 py-3.5 rounded-lg text-sm font-medium transition-all min-h-[48px] ${
                   activeTab === item.id
                     ? 'bg-green-50 text-green-700'
                     : 'text-gray-600 hover:bg-gray-50'
@@ -188,14 +183,14 @@ const Navigation: React.FC<NavigationProps> = ({
                 <div className="border-t border-gray-100 pt-2 mt-2">
                   <button
                     onClick={() => { setMobileMenuOpen(false); onProfileClick(); }}
-                    className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50"
+                    className="flex items-center gap-3 w-full px-4 py-3.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 min-h-[48px]"
                   >
                     <Settings className="w-5 h-5" />
                     Edit Profile
                   </button>
                   <button
                     onClick={() => { setMobileMenuOpen(false); onLogout(); }}
-                    className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50"
+                    className="flex items-center gap-3 w-full px-4 py-3.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 min-h-[48px]"
                   >
                     <LogOut className="w-5 h-5" />
                     Sign Out

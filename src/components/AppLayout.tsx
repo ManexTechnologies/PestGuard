@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { collection, query, orderBy, limit, getDocs, updateDoc, doc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { getAllPestSightings, recordPestHistory } from '@/lib/api';
 import Navigation, { type TabId } from './pest/Navigation';
 import HeroSection from './pest/HeroSection';
 import PestScanner from './pest/PestScanner';
@@ -46,16 +45,35 @@ const AppLayout: React.FC = () => {
   const fetchReports = useCallback(async () => {
     setReportsLoading(true);
     try {
-      const reportsRef = collection(db, 'pest_reports');
-      const q = query(reportsRef, orderBy('created_at', 'desc'), limit(100));
-      const querySnapshot = await getDocs(q);
-      const data = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as PestReport[];
-      setReports(data || []);
+      const result = await getAllPestSightings();
+      if (result.success) {
+        // Transform backend data to match PestReport interface
+        const data = result.data.map((item: any) => ({
+          id: item.id.toString(),
+          pest_name: item.pest_name,
+          pest_type: item.pest_type,
+          confidence: 85, // Default confidence since backend doesn't store this
+          crop_affected: item.crop_affected || 'Unknown',
+          severity: item.severity,
+          latitude: parseFloat(item.latitude) || -17.8292,
+          longitude: parseFloat(item.longitude) || 31.0522,
+          location_name: item.location || 'Not specified',
+          province: item.province || 'Not specified',
+          description: item.description,
+          image_url: item.image_url,
+          status: 'active', // Default status
+          created_at: item.identified_at || item.created_at,
+          user_name: item.user_name,
+          user_email: item.user_email,
+        })) as PestReport[];
+        setReports(data || []);
+      } else {
+        console.error('Failed to fetch reports:', result.error);
+        setReports([]);
+      }
     } catch (err) {
       console.error('Failed to fetch reports:', err);
+      setReports([]);
     } finally {
       setReportsLoading(false);
     }
@@ -70,16 +88,27 @@ const AppLayout: React.FC = () => {
 
   const handleRateEffectiveness = async (reportId: string, rating: number) => {
     try {
-      const reportRef = doc(db, 'pest_reports', reportId);
-      await updateDoc(reportRef, { effectiveness_rating: rating });
-      setReports(prev => prev.map(r => r.id === reportId ? { ...r, effectiveness_rating: rating } : r));
+      if (user?.id) {
+        await recordPestHistory({
+          user_id: user.id,
+          sighting_id: parseInt(reportId),
+          effectiveness: rating.toString(),
+        });
+        setReports(prev => prev.map(r => r.id === reportId ? { ...r, effectiveness_rating: rating } : r));
+      }
     } catch (err) { console.error('Failed to rate:', err); }
   };
 
-  const handleAuthSuccess = (u: User, p: FarmerProfile, token: string) => {
+  const handleAuthSuccess = async (u: User, p: FarmerProfile, token: string) => {
     setUser(u);
-    setProfile(p);
     setSessionToken(token);
+    // Load the profile from the database to ensure it's up to date
+    const result = await verifySession(token);
+    if (result) {
+      setProfile(result.profile);
+    } else {
+      setProfile(p); // fallback to the signup result
+    }
   };
 
   const handleLogout = async () => {
@@ -114,7 +143,7 @@ const AppLayout: React.FC = () => {
         profile={profile}
       />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         {activeTab === 'home' && (
           <HeroSection onTabChange={handleTabChange} stats={stats} recentAlerts={recentAlerts} />
         )}

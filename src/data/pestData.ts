@@ -417,6 +417,177 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
       { name: 'Trichogramma Release', type: 'biological', description: 'Release egg parasitoids during moth flight peaks', effectiveness: 'medium', cost: 'medium' },
     ]
   },
+  {
+    id: '21',
+    name: 'Maize Streak Virus',
+    scientificName: 'Maize streak virus',
+    type: 'Virus',
+    cropAffected: ['Maize'],
+    description: 'A viral disease transmitted by leafhoppers, causing characteristic yellow streaks on maize leaves and significant yield losses.',
+    damageSymptoms: ['Yellow streaks parallel to leaf veins', 'Stunted plant growth', 'Reduced ear development', 'Premature death in severe cases'],
+    imageUrl: '/assets/Maize Streak Virus.jpeg',
+    severity: 'high',
+    season: 'Rainy season (November - March)',
+    treatments: [
+      { name: 'Resistant Varieties', type: 'cultural', description: 'Plant maize varieties resistant to maize streak virus', effectiveness: 'high', cost: 'low' },
+      { name: 'Leafhopper Control', type: 'chemical', description: 'Apply insecticides to control leafhopper vectors', effectiveness: 'medium', cost: 'medium', safetyWarning: 'Use selective insecticides to minimize harm to beneficial insects.' },
+      { name: 'Early Planting', type: 'cultural', description: 'Plant early to avoid peak leafhopper populations', effectiveness: 'medium', cost: 'low' },
+    ]
+  },
+  {
+    id: '22',
+    name: 'Grey Leaf Spot',
+    scientificName: 'Cercospora zeae-maydis',
+    type: 'Fungus',
+    cropAffected: ['Maize'],
+    description: 'A fungal disease that causes grey rectangular spots on maize leaves, leading to premature leaf death and yield reduction.',
+    damageSymptoms: ['Rectangular grey spots with yellow halos', 'Lesions coalesce causing leaf death', 'Reduced photosynthesis', 'Premature senescence'],
+    imageUrl: '/assets/Grey Leaf Spot.jpeg',
+    severity: 'medium',
+    season: 'Wet season (December - April)',
+    treatments: [
+      { name: 'Fungicide Application', type: 'chemical', description: 'Apply triazole fungicides at tasseling and silking stages', effectiveness: 'high', cost: 'high', safetyWarning: 'Follow label instructions and observe withholding periods.' },
+      { name: 'Crop Rotation', type: 'cultural', description: 'Rotate with non-maize crops to reduce inoculum', effectiveness: 'medium', cost: 'low' },
+      { name: 'Resistant Hybrids', type: 'cultural', description: 'Plant grey leaf spot resistant maize hybrids', effectiveness: 'high', cost: 'low' },
+    ]
+  },
+  {
+    id: '23',
+    name: 'Root Knot Nematode',
+    scientificName: 'Meloidogyne spp.',
+    type: 'Nematode',
+    cropAffected: ['Vegetables', 'Tobacco', 'Cotton', 'Groundnuts'],
+    description: 'Microscopic worms that infect plant roots, forming galls that impair water and nutrient uptake.',
+    damageSymptoms: ['Swollen root galls', 'Stunted plant growth', 'Yellowing leaves', 'Reduced yields'],
+    imageUrl: '/assets/Root Knot Nematode.jpeg',
+    severity: 'high',
+    season: 'Year-round in warm soils',
+    treatments: [
+      { name: 'Soil Solarization', type: 'cultural', description: 'Cover moist soil with plastic for 4-6 weeks in hot sun to kill nematodes', effectiveness: 'medium', cost: 'low' },
+      { name: 'Crop Rotation', type: 'cultural', description: 'Rotate with nematode-resistant crops like marigolds', effectiveness: 'high', cost: 'low' },
+      { name: 'Nematicides', type: 'chemical', description: 'Apply carbofuran or other nematicides at planting', effectiveness: 'high', cost: 'high', safetyWarning: 'Highly toxic. Use with extreme caution and follow safety guidelines.' },
+    ]
+  },
+  {
+    id: '24',
+    name: 'Bean Aphid',
+    scientificName: 'Aphis fabae',
+    type: 'Hemiptera',
+    cropAffected: ['Vegetables', 'Groundnuts', 'Soybeans'],
+    description: 'Small black aphids that suck sap from bean and legume crops, causing leaf curling and transmitting viruses.',
+    damageSymptoms: ['Curled and distorted leaves', 'Sticky honeydew on leaves', 'Sooty mold growth', 'Stunted growth'],
+    imageUrl: '/assets/Bean Aphid.jpeg',
+    severity: 'medium',
+    season: 'Cool dry season (May - August)',
+    treatments: [
+      { name: 'Ladybird Release', type: 'biological', description: 'Introduce ladybird beetles as natural predators', effectiveness: 'high', cost: 'low' },
+      { name: 'Soap Spray', type: 'organic', description: 'Mix dish soap with water and spray on aphids', effectiveness: 'medium', cost: 'low' },
+      { name: 'Imidacloprid', type: 'chemical', description: 'Apply systemic insecticide at first sign of infestation', effectiveness: 'high', cost: 'medium', safetyWarning: 'Toxic to bees. Apply in evening.' },
+    ]
+  },
+  {
+    id: '25',
+    name: 'Tomato Blight',
+    scientificName: 'Phytophthora infestans',
+    type: 'Fungus-like organism',
+    cropAffected: ['Vegetables'],
+    description: 'A devastating disease of tomatoes and potatoes, causing rapid leaf and fruit rot in humid conditions.',
+    damageSymptoms: ['Dark water-soaked spots on leaves', 'White fungal growth on leaf undersides', 'Rotten fruit with dark lesions', 'Rapid plant collapse'],
+    imageUrl: '/assets/Tomato Blight.jpeg',
+    severity: 'critical',
+    season: 'Cool wet season (April - September)',
+    treatments: [
+      { name: 'Copper Fungicide', type: 'organic', description: 'Apply copper-based fungicide preventively', effectiveness: 'medium', cost: 'low' },
+      { name: 'Proper Spacing', type: 'cultural', description: 'Space plants to improve air circulation', effectiveness: 'medium', cost: 'low' },
+      { name: 'Remove Infected Plants', type: 'cultural', description: 'Immediately remove and destroy infected plants', effectiveness: 'high', cost: 'low' },
+      { name: 'Systemic Fungicide', type: 'chemical', description: 'Apply mancozeb or chlorothalonil at first symptoms', effectiveness: 'high', cost: 'medium', safetyWarning: 'Do not apply near harvest. Follow withholding periods.' },
+    ]
+  },
+  {
+    id: '26',
+    name: 'Cassava Mosaic Disease',
+    scientificName: 'Cassava mosaic virus',
+    type: 'Virus',
+    cropAffected: ['Vegetables'],
+    description: 'A viral disease transmitted by whiteflies, causing mosaic patterns on cassava leaves and severe yield losses.',
+    damageSymptoms: ['Mosaic patterns on leaves', 'Leaf distortion and curling', 'Stunted growth', 'Reduced root development'],
+    imageUrl: '/assets/Cassava Mosaic Disease.jpeg',
+    severity: 'high',
+    season: 'Year-round',
+    treatments: [
+      { name: 'Resistant Varieties', type: 'cultural', description: 'Plant cassava varieties resistant to CMD', effectiveness: 'high', cost: 'low' },
+      { name: 'Whitefly Control', type: 'chemical', description: 'Apply insecticides to control whitefly vectors', effectiveness: 'medium', cost: 'medium' },
+      { name: 'Rogue Infected Plants', type: 'cultural', description: 'Remove and destroy plants showing symptoms', effectiveness: 'medium', cost: 'low' },
+    ]
+  },
+  {
+    id: '27',
+    name: 'Banana Weevil',
+    scientificName: 'Cosmopolites sordidus',
+    type: 'Coleoptera',
+    cropAffected: ['Vegetables'],
+    description: 'A major pest of bananas, with larvae boring into corms causing plant weakening and toppling.',
+    damageSymptoms: ['Wilting and toppling of plants', 'Holes in corms', 'Larvae tunnels in pseudostems', 'Reduced bunch size'],
+    imageUrl: '/assets/Banana Weevil.jpeg',
+    severity: 'high',
+    season: 'Year-round',
+    treatments: [
+      { name: 'Clean Planting Material', type: 'cultural', description: 'Use clean, weevil-free suckers for planting', effectiveness: 'high', cost: 'low' },
+      { name: 'Pseudostem Trapping', type: 'cultural', description: 'Place pseudostem pieces in soil to trap adults', effectiveness: 'medium', cost: 'low' },
+      { name: 'Insecticide Injection', type: 'chemical', description: 'Inject systemic insecticides into pseudostems', effectiveness: 'high', cost: 'high', safetyWarning: 'Use registered products only. Wear protective gear.' },
+    ]
+  },
+  {
+    id: '28',
+    name: 'Groundnut Rosette',
+    scientificName: 'Groundnut rosette virus',
+    type: 'Virus',
+    cropAffected: ['Groundnuts'],
+    description: 'A complex viral disease transmitted by aphids, causing severe stunting and yield loss in groundnuts.',
+    damageSymptoms: ['Bright yellow chlorosis', 'Severe stunting', 'Leaf distortion', 'Complete yield loss'],
+    imageUrl: '/assets/Groundnut Rosette.jpeg',
+    severity: 'critical',
+    season: 'Rainy season (November - March)',
+    treatments: [
+      { name: 'Resistant Varieties', type: 'cultural', description: 'Plant rosette-resistant groundnut varieties', effectiveness: 'high', cost: 'low' },
+      { name: 'Aphid Control', type: 'chemical', description: 'Apply insecticides to control aphid vectors', effectiveness: 'medium', cost: 'medium' },
+      { name: 'Early Planting', type: 'cultural', description: 'Plant early to avoid peak aphid populations', effectiveness: 'medium', cost: 'low' },
+    ]
+  },
+  {
+    id: '29',
+    name: 'Sugarcane Aphid',
+    scientificName: 'Melanaphis sacchari',
+    type: 'Hemiptera',
+    cropAffected: ['Sugarcane', 'Sorghum'],
+    description: 'Small yellow aphids that form dense colonies on sugarcane leaves, causing leaf yellowing and reduced growth.',
+    damageSymptoms: ['Yellow streaking on leaves', 'Dense aphid colonies', 'Sticky honeydew', 'Sooty mold growth'],
+    imageUrl: '/assets/Sugarcane Aphid.jpeg',
+    severity: 'medium',
+    season: 'Dry season (May - October)',
+    treatments: [
+      { name: 'Natural Enemies', type: 'biological', description: 'Encourage ladybird beetles and parasitic wasps', effectiveness: 'high', cost: 'low' },
+      { name: 'Water Spray', type: 'cultural', description: 'Strong water jet to dislodge aphids', effectiveness: 'low', cost: 'low' },
+      { name: 'Insecticide Spray', type: 'chemical', description: 'Apply imidacloprid or thiamethoxam', effectiveness: 'high', cost: 'medium', safetyWarning: 'Rotate insecticide classes to prevent resistance.' },
+    ]
+  },
+  {
+    id: '30',
+    name: 'Wheat Stem Rust',
+    scientificName: 'Puccinia graminis',
+    type: 'Fungus',
+    cropAffected: ['Wheat'],
+    description: 'A destructive fungal disease causing reddish-brown pustules on wheat stems and leaves, leading to stem breakage.',
+    damageSymptoms: ['Reddish-brown pustules on stems and leaves', 'Stem breakage', 'Reduced grain filling', 'Yield losses up to 70%'],
+    imageUrl: '/assets/Wheat Stem Rust.jpeg',
+    severity: 'critical',
+    season: 'Cool moist conditions (May - August)',
+    treatments: [
+      { name: 'Resistant Varieties', type: 'cultural', description: 'Plant rust-resistant wheat varieties', effectiveness: 'high', cost: 'low' },
+      { name: 'Fungicide Application', type: 'chemical', description: 'Apply triazole fungicides at flag leaf emergence', effectiveness: 'high', cost: 'high', safetyWarning: 'Follow label rates and withholding periods.' },
+      { name: 'Crop Rotation', type: 'cultural', description: 'Rotate with non-cereal crops', effectiveness: 'medium', cost: 'low' },
+    ]
+  },
 ];
 
 export const EMERGENCY_CONTACTS = [

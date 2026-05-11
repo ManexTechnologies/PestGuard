@@ -65,23 +65,14 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuccess })
       resetForm();
       onClose();
     } catch (err: any) {
-      // Handle specific Firebase auth errors
       const errorMessage = err.message || 'Login failed';
-      
-      if (errorMessage.includes('auth/invalid-email')) {
-        setError('Invalid email address. Please check your email and try again.');
-      } else if (errorMessage.includes('auth/user-not-found')) {
+      // basic mapping for common backend responses
+      if (errorMessage.toLowerCase().includes('invalid')) {
+        setError('Invalid credentials. Please check your email and password.');
+      } else if (errorMessage.toLowerCase().includes('not found')) {
         setError('No account found with this email. Please sign up first.');
-      } else if (errorMessage.includes('auth/wrong-password')) {
-        setError('Incorrect password. Please try again.');
-      } else if (errorMessage.includes('auth/invalid-credential')) {
-        setError('Invalid email or password. Please check your credentials.');
-      } else if (errorMessage.includes('auth/network-request-failed')) {
+      } else if (errorMessage.toLowerCase().includes('network')) {
         setError('Network error. Please check your internet connection and try again.');
-      } else if (errorMessage.includes('auth/too-many-requests')) {
-        setError('Too many failed attempts. Please try again later or reset your password.');
-      } else if (errorMessage.includes('PERMISSION_DENIED') || errorMessage.includes('permission-denied')) {
-        setError('Permission denied. Please ensure your Firebase configuration is correct.');
       } else {
         setError(errorMessage);
       }
@@ -129,22 +120,15 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuccess })
       resetForm();
       onClose();
     } catch (err: any) {
-      // Handle specific Firebase auth errors
       const errorMessage = err.message || 'Signup failed';
-      
-      // Provide more helpful error messages based on Firebase error codes
-      if (errorMessage.includes('auth/email-already-in-use')) {
+      if (errorMessage.toLowerCase().includes('already')) {
         setError('An account with this email already exists. Please try logging in instead.');
-      } else if (errorMessage.includes('auth/invalid-email')) {
-        setError('Invalid email address. Please check your email and try again.');
-      } else if (errorMessage.includes('auth/weak-password')) {
-        setError('Password is too weak. Please use at least 6 characters.');
-      } else if (errorMessage.includes('auth/network-request-failed')) {
+      } else if (errorMessage.toLowerCase().includes('invalid')) {
+        setError('Invalid input. Please check your details and try again.');
+      } else if (errorMessage.toLowerCase().includes('network')) {
         setError('Network error. Please check your internet connection and try again.');
-      } else if (errorMessage.includes('auth/internal-error')) {
-        setError('Server error. Please try again later or check your Firebase configuration.');
-      } else if (errorMessage.includes('PERMISSION_DENIED') || errorMessage.includes('permission-denied')) {
-        setError('Permission denied. Please ensure:\n1. Firebase Authentication is enabled in Console\n2. Firestore Security Rules allow user creation\n3. Your .env file has correct Firebase credentials');
+      } else if (errorMessage.toLowerCase().includes('server')) {
+        setError('Server error. Please try again later.');
       } else {
         setError(errorMessage);
       }

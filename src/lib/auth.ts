@@ -1,30 +1,13 @@
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-  User as FirebaseUser,
-} from 'firebase/auth';
-import {
-  collection,
-  doc,
-  setDoc,
-  getDoc,
-  updateDoc,
-  query,
-  where,
-  getDocs,
-} from 'firebase/firestore';
-import { auth, db } from './firebase';
+import { login as apiLogin, signup as apiSignup, logout as apiLogout, getPestHistory } from './api';
 
 export interface User {
-  id: string;
+  id: number;
   email: string;
 }
 
 export interface FarmerProfile {
-  id: string;
-  user_id: string;
+  id: number;
+  user_id: number;
   full_name: string;
   farm_name: string | null;
   farm_location: string | null;
@@ -82,24 +65,27 @@ export async function signup(params: {
     throw new Error('Password must be at least 6 characters');
   }
 
-  const emailLower = email.toLowerCase().trim();
+  const result = await apiSignup({
+    email,
+    password,
+    full_name: fullName,
+    farm_name: farmName,
+    farm_location: farmLocation,
+    province,
+    crops_grown: cropsGrown,
+    phone,
+  });
 
-  // Create user with Firebase Auth (Firebase will check for duplicate emails)
-  const userCredential = await createUserWithEmailAndPassword(auth, emailLower, password);
-  const firebaseUser = userCredential.user;
+  if (!result || !result.success) {
+    throw new Error(result?.error || 'Signup failed');
+  }
 
-  // Create user document in Firestore
-  const userData = {
-    email: emailLower,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-
-  await setDoc(doc(db, 'users', firebaseUser.uid), userData);
-
-  // Create farmer profile
-  const profileData: any = {
-    user_id: firebaseUser.uid,
+  // The backend returns user_id, but we need to construct user and profile objects
+  // For now, we'll create a minimal user object and fetch profile separately
+  const user = { id: result.user_id, email: result.email || '' };
+  const profile = {
+    id: result.user_id, // Temporary, will be updated when profile is fetched
+    user_id: result.user_id,
     full_name: fullName,
     farm_name: farmName || null,
     farm_location: farmLocation || null,
@@ -110,61 +96,50 @@ export async function signup(params: {
     updated_at: new Date().toISOString(),
   };
 
-  const profileDocId = `profile_${firebaseUser.uid}`;
-  await setDoc(doc(db, 'farmer_profiles', profileDocId), profileData);
-
-  // Get ID token for session
-  const idToken = await firebaseUser.getIdToken();
-  storeSession(idToken);
-
-  // Get profile data to return
-  const profileDoc = await getDoc(doc(db, 'farmer_profiles', profileDocId));
-  const profile = { id: profileDocId, ...profileDoc.data() } as FarmerProfile;
+  storeSession(result.token);
 
   return {
-    user: { id: firebaseUser.uid, email: firebaseUser.email! },
+    user,
     profile,
-    sessionToken: idToken,
+    sessionToken: result.token,
   };
 }
 
-export async function login(email: string, password: string): Promise<{ user: User; profile: FarmerProfile; sessionToken: string }> {
+export async function login(
+  email: string,
+  password: string
+): Promise<{ user: User; profile: FarmerProfile; sessionToken: string }> {
   if (!email || !password) {
     throw new Error('Email and password are required');
   }
 
-  const emailLower = email.toLowerCase().trim();
-
-  // Sign in with Firebase Auth
-  const userCredential = await signInWithEmailAndPassword(auth, emailLower, password);
-  const firebaseUser = userCredential.user;
-
-  // Get user document
-  const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-  if (!userDoc.exists()) {
-    throw new Error('User data not found');
+  const result = await apiLogin({ email, password });
+  if (!result || !result.success) {
+    throw new Error(result?.error || 'Login failed');
   }
 
-  // Get farmer profile
-  const profilesRef = collection(db, 'farmer_profiles');
-  const q = query(profilesRef, where('user_id', '==', firebaseUser.uid));
-  const querySnapshot = await getDocs(q);
+  // The backend returns user_id and email, but we need to construct user and profile objects
+  // For now, we'll create a minimal user object and fetch profile separately
+  const user = { id: result.user_id, email: result.email };
+  const profile = {
+    id: result.user_id, // Temporary, will be updated when profile is fetched
+    user_id: result.user_id,
+    full_name: '', // Will be updated when profile is fetched
+    farm_name: null,
+    farm_location: null,
+    province: null,
+    crops_grown: [],
+    phone: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
 
-  if (querySnapshot.empty) {
-    throw new Error('Farmer profile not found');
-  }
-
-  const profileDoc = querySnapshot.docs[0];
-  const profile = { id: profileDoc.id, ...profileDoc.data() } as FarmerProfile;
-
-  // Get ID token for session
-  const idToken = await firebaseUser.getIdToken();
-  storeSession(idToken);
+  storeSession(result.token);
 
   return {
-    user: { id: firebaseUser.uid, email: firebaseUser.email! },
+    user,
     profile,
-    sessionToken: idToken,
+    sessionToken: result.token,
   };
 }
 
@@ -172,37 +147,31 @@ export async function verifySession(token: string): Promise<{ user: User; profil
   if (!token) return null;
 
   try {
-    // Verify token with Firebase Auth
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
+    // Decode the token to get user info
+    const decoded = atob(token);
+    const tokenData = JSON.parse(decoded);
+    
+    if (!tokenData || !tokenData.user_id) {
       clearSession();
       return null;
     }
 
-    // Get user document
-    const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-    if (!userDoc.exists()) {
+    // Call backend to verify and get full user/profile data
+    const result = await fetch((import.meta as any).env.VITE_API_URL + '/auth.php/verify-session', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    
+    if (!result.ok) {
       clearSession();
       return null;
     }
-
-    // Get farmer profile
-    const profilesRef = collection(db, 'farmer_profiles');
-    const q = query(profilesRef, where('user_id', '==', currentUser.uid));
-    const querySnapshot = await getDocs(q);
-
-    if (querySnapshot.empty) {
-      clearSession();
-      return null;
-    }
-
-    const profileDoc = querySnapshot.docs[0];
-    const profile = { id: profileDoc.id, ...profileDoc.data() } as FarmerProfile;
-
-    return {
-      user: { id: currentUser.uid, email: currentUser.email! },
-      profile,
-    };
+    
+    const data = await result.json();
+    return data as { user: User; profile: FarmerProfile };
   } catch (error) {
     clearSession();
     return null;
@@ -213,40 +182,25 @@ export async function updateProfile(
   token: string,
   updates: Partial<Omit<FarmerProfile, 'id' | 'user_id' | 'created_at' | 'updated_at'>>
 ): Promise<FarmerProfile> {
-  const currentUser = auth.currentUser;
-  if (!currentUser) throw new Error('Not authenticated');
+  const response = await fetch((import.meta as any).env.VITE_API_URL + '/auth.php/update-profile', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(updates),
+  });
 
-  // Get farmer profile
-  const profilesRef = collection(db, 'farmer_profiles');
-  const q = query(profilesRef, where('user_id', '==', currentUser.uid));
-  const querySnapshot = await getDocs(q);
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.error || 'Profile update failed');
+  }
 
-  if (querySnapshot.empty) throw new Error('Profile not found');
-
-  const profileDoc = querySnapshot.docs[0];
-  const profileRef = doc(db, 'farmer_profiles', profileDoc.id);
-
-  // Update profile
-  const updateData = {
-    ...updates,
-    updated_at: new Date().toISOString(),
-  };
-
-  await updateDoc(profileRef, updateData);
-
-  // Get updated profile
-  const updatedDoc = await getDoc(profileRef);
-  const profile = { id: updatedDoc.id, ...updatedDoc.data() } as FarmerProfile;
-
-  return profile;
+  const updated = await response.json();
+  return updated as FarmerProfile;
 }
 
 export async function logout(token: string | null) {
   clearSession();
-  await signOut(auth);
+  await apiLogout();
 }
-
-export function onAuthStateChangedListener(callback: (user: FirebaseUser | null) => void) {
-  return onAuthStateChanged(auth, callback);
-}
-

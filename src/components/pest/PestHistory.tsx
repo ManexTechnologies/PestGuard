@@ -63,93 +63,93 @@ const PestHistory: React.FC<PestHistoryProps> = ({ reports, loading, onRateEffec
     const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
     if (diffHrs < 1) return 'Just now';
-    if (diffHrs < 24) return `${diffHrs} hours ago`;
-    if (diffDays < 7) return `${diffDays} days ago`;
-    return date.toLocaleDateString('en-ZW', { day: 'numeric', month: 'short', year: 'numeric' });
+    if (diffHrs < 24) return `${diffHrs}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString('en-ZW', { day: 'numeric', month: 'short' });
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Pest Report History</h2>
-          <p className="text-gray-500 mt-1">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Pest Report History</h2>
+          <p className="text-gray-500 mt-1 text-sm">
             {viewFilter === 'my' && userId
               ? 'Your personal pest reports and treatment tracking'
               : 'All community pest reports across Zimbabwe'}
           </p>
         </div>
         {userId && (
-          <div className="flex items-center bg-gray-100 rounded-lg p-1">
+          <div className="flex items-center bg-gray-100 rounded-lg p-1 self-start">
             <button
               onClick={() => setViewFilter('my')}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+              className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-all ${
                 viewFilter === 'my' ? 'bg-white text-green-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              <User className="w-4 h-4" /> My Reports
+              <User className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">My</span>
             </button>
             <button
               onClick={() => setViewFilter('all')}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+              className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-all ${
                 viewFilter === 'all' ? 'bg-white text-green-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              <Users className="w-4 h-4" /> All Reports
+              <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">All</span>
             </button>
           </div>
         )}
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-          <p className="text-sm text-gray-500">Total Reports</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{stats.total}</p>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
+        <div className="bg-white rounded-xl p-3 sm:p-4 border border-gray-100 shadow-sm">
+          <p className="text-xs sm:text-sm text-gray-500">Total</p>
+          <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">{stats.total}</p>
         </div>
-        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-          <p className="text-sm text-gray-500">Active</p>
-          <p className="text-2xl font-bold text-red-600 mt-1">{stats.active}</p>
+        <div className="bg-white rounded-xl p-3 sm:p-4 border border-gray-100 shadow-sm">
+          <p className="text-xs sm:text-sm text-gray-500">Active</p>
+          <p className="text-xl sm:text-2xl font-bold text-red-600 mt-1">{stats.active}</p>
         </div>
-        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-          <p className="text-sm text-gray-500">Resolved</p>
-          <p className="text-2xl font-bold text-green-600 mt-1">{stats.resolved}</p>
+        <div className="bg-white rounded-xl p-3 sm:p-4 border border-gray-100 shadow-sm">
+          <p className="text-xs sm:text-sm text-gray-500">Resolved</p>
+          <p className="text-xl sm:text-2xl font-bold text-green-600 mt-1">{stats.resolved}</p>
         </div>
-        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-          <p className="text-sm text-gray-500">Top Pest</p>
-          <p className="text-lg font-bold text-gray-900 mt-1 truncate">{stats.topPest?.[0] || 'N/A'}</p>
+        <div className="bg-white rounded-xl p-3 sm:p-4 border border-gray-100 shadow-sm">
+          <p className="text-xs sm:text-sm text-gray-500">Top Pest</p>
+          <p className="text-sm sm:text-lg font-bold text-gray-900 mt-1 truncate">{stats.topPest?.[0] || 'N/A'}</p>
         </div>
-        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-          <p className="text-sm text-gray-500">Most Affected Crop</p>
-          <p className="text-lg font-bold text-gray-900 mt-1 truncate">{stats.topCrop?.[0] || 'N/A'}</p>
+        <div className="bg-white rounded-xl p-3 sm:p-4 border border-gray-100 shadow-sm col-span-2 sm:col-span-1">
+          <p className="text-xs sm:text-sm text-gray-500">Top Crop</p>
+          <p className="text-sm sm:text-lg font-bold text-gray-900 mt-1 truncate">{stats.topCrop?.[0] || 'N/A'}</p>
         </div>
       </div>
 
       {/* Pest Frequency Chart */}
       {stats.total > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-green-600" />
+        <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 shadow-sm">
+          <h3 className="font-semibold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
+            <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
             Pest Frequency
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             {(() => {
               const source = viewFilter === 'my' && userId
                 ? reports.filter(r => (r as any).user_id === userId)
                 : reports;
               const pestCounts: Record<string, number> = {};
               source.forEach(r => { pestCounts[r.pest_name] = (pestCounts[r.pest_name] || 0) + 1; });
-              const sorted = Object.entries(pestCounts).sort((a, b) => b[1] - a[1]).slice(0, 8);
+              const sorted = Object.entries(pestCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
               const max = sorted[0]?.[1] || 1;
               return sorted.map(([name, count]) => (
-                <div key={name} className="flex items-center gap-3">
-                  <span className="text-sm text-gray-700 w-24 md:w-36 truncate">{name}</span>
-                  <div className="flex-1 h-6 bg-gray-100 rounded-full overflow-hidden">
+                <div key={name} className="flex items-center gap-2 sm:gap-3">
+                  <span className="text-xs sm:text-sm text-gray-700 w-16 sm:w-24 md:w-36 truncate">{name}</span>
+                  <div className="flex-1 h-5 sm:h-6 bg-gray-100 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-green-500 to-emerald-400 rounded-full transition-all duration-500 flex items-center justify-end pr-2"
+                      className="h-full bg-gradient-to-r from-green-500 to-emerald-400 rounded-full transition-all duration-500 flex items-center justify-end pr-1.5 sm:pr-2"
                       style={{ width: `${(count / max) * 100}%` }}
                     >
-                      <span className="text-xs font-medium text-white">{count}</span>
+                      <span className="text-[10px] sm:text-xs font-medium text-white">{count}</span>
                     </div>
                   </div>
                 </div>
@@ -160,8 +160,8 @@ const PestHistory: React.FC<PestHistoryProps> = ({ reports, loading, onRateEffec
       )}
 
       {/* Sort Controls */}
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-gray-900">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+        <h3 className="font-semibold text-gray-900 text-sm sm:text-base">
           {viewFilter === 'my' && userId ? 'My Reports' : 'All Reports'} ({displayReports.length})
         </h3>
         <div className="flex items-center gap-2">
@@ -169,23 +169,23 @@ const PestHistory: React.FC<PestHistoryProps> = ({ reports, loading, onRateEffec
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
-            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white"
+            className="px-2 sm:px-3 py-1.5 border border-gray-300 rounded-lg text-xs sm:text-sm bg-white"
           >
-            <option value="date">Sort by Date</option>
-            <option value="severity">Sort by Severity</option>
-            <option value="pest">Sort by Pest Name</option>
+            <option value="date">Date</option>
+            <option value="severity">Severity</option>
+            <option value="pest">Pest</option>
           </select>
         </div>
       </div>
 
       {/* Reports Timeline */}
       {loading ? (
-        <div className="flex items-center justify-center py-20">
+        <div className="flex items-center justify-center py-12 sm:py-20">
           <div className="animate-spin w-8 h-8 border-4 border-green-200 border-t-green-600 rounded-full" />
         </div>
       ) : displayReports.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
-          <Leaf className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+        <div className="text-center py-10 sm:py-16 bg-white rounded-xl border border-gray-200">
+          <Leaf className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 text-gray-300" />
           <h3 className="font-semibold text-gray-700 mb-2">
             {viewFilter === 'my' ? 'No Personal Reports Yet' : 'No Reports Found'}
           </h3>
@@ -196,7 +196,7 @@ const PestHistory: React.FC<PestHistoryProps> = ({ reports, loading, onRateEffec
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2 sm:space-y-3">
           {displayReports.map((report) => (
             <div
               key={report.id}
@@ -204,43 +204,43 @@ const PestHistory: React.FC<PestHistoryProps> = ({ reports, loading, onRateEffec
             >
               <button
                 onClick={() => setExpandedReport(expandedReport === report.id ? null : report.id)}
-                className="w-full flex items-center gap-4 px-5 py-4 text-left"
+                className="w-full flex items-center gap-2 sm:gap-4 px-3 sm:px-5 py-3 sm:py-4 text-left"
               >
-                <div className={`w-3 h-3 rounded-full flex-shrink-0 ${SEVERITY_DOT_COLORS[report.severity] || 'bg-gray-400'}`} />
+                <div className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full flex-shrink-0 ${SEVERITY_DOT_COLORS[report.severity] || 'bg-gray-400'}`} />
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h4 className="font-medium text-gray-900">{report.pest_name}</h4>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${SEVERITY_COLORS[report.severity] || ''}`}>
+                  <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                    <h4 className="font-medium text-gray-900 text-sm sm:text-base truncate">{report.pest_name}</h4>
+                    <span className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full font-medium border ${SEVERITY_COLORS[report.severity] || ''}`}>
                       {report.severity}
                     </span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[report.status] || ''}`}>
+                    <span className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[report.status] || ''}`}>
                       {report.status}
                     </span>
                     {(report as any).user_id === userId && userId && (
-                      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                        My Report
+                      <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                        Mine
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
-                    <span className="flex items-center gap-1"><Bug className="w-3 h-3" />{report.crop_affected}</span>
-                    <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{report.location_name}</span>
-                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{formatTime(report.created_at)}</span>
+                  <div className="flex items-center gap-2 sm:gap-4 mt-1 text-[10px] sm:text-xs text-gray-500">
+                    <span className="flex items-center gap-0.5 sm:gap-1"><Bug className="w-3 h-3" /><span className="hidden sm:inline">{report.crop_affected}</span><span className="sm:hidden">{report.crop_affected?.slice(0,4)}</span></span>
+                    <span className="flex items-center gap-0.5 sm:gap-1 truncate"><MapPin className="w-3 h-3" /><span className="truncate max-w-[80px] sm:max-w-none">{report.location_name}</span></span>
+                    <span className="flex items-center gap-0.5 sm:gap-1 whitespace-nowrap"><Clock className="w-3 h-3" />{formatTime(report.created_at)}</span>
                   </div>
                 </div>
                 {report.effectiveness_rating && (
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-0.5">
                     {[1,2,3,4,5].map(s => (
-                      <Star key={s} className={`w-3.5 h-3.5 ${s <= report.effectiveness_rating! ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
+                      <Star key={s} className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${s <= report.effectiveness_rating! ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
                     ))}
                   </div>
                 )}
-                {expandedReport === report.id ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                {expandedReport === report.id ? <ChevronUp className="w-4 h-4 text-gray-400 flex-shrink-0" /> : <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />}
               </button>
 
               {expandedReport === report.id && (
-                <div className="px-5 pb-5 border-t border-gray-100 pt-4 space-y-4">
-                  <div className="grid sm:grid-cols-2 gap-4">
+                <div className="px-3 sm:px-5 pb-4 sm:pb-5 border-t border-gray-100 pt-3 sm:pt-4 space-y-3 sm:space-y-4">
+                  <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
                       <p className="text-xs font-medium text-gray-500 mb-1">Description</p>
                       <p className="text-sm text-gray-700">{report.description || 'No description provided'}</p>
@@ -253,7 +253,7 @@ const PestHistory: React.FC<PestHistoryProps> = ({ reports, loading, onRateEffec
                       <div>
                         <p className="text-xs font-medium text-gray-500">Confidence</p>
                         <div className="flex items-center gap-2">
-                          <div className="w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
+                          <div className="w-20 sm:w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
                             <div className="h-full bg-green-500 rounded-full" style={{ width: `${report.confidence}%` }} />
                           </div>
                           <span className="text-sm font-medium text-gray-700">{report.confidence}%</span>
@@ -261,7 +261,7 @@ const PestHistory: React.FC<PestHistoryProps> = ({ reports, loading, onRateEffec
                       </div>
                       {report.treatment_applied && (
                         <div>
-                          <p className="text-xs font-medium text-gray-500">Treatment Applied</p>
+                          <p className="text-xs font-medium text-gray-500">Treatment</p>
                           <p className="text-sm text-gray-700">{report.treatment_applied}</p>
                         </div>
                       )}
@@ -270,17 +270,17 @@ const PestHistory: React.FC<PestHistoryProps> = ({ reports, loading, onRateEffec
 
                   {/* Rate Effectiveness - only for user's own reports */}
                   {!report.effectiveness_rating && (report as any).user_id === userId && userId && (
-                    <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
-                      <p className="text-sm font-medium text-yellow-800 mb-2">Rate Treatment Effectiveness</p>
-                      <p className="text-xs text-yellow-600 mb-3">How well did the treatment work?</p>
-                      <div className="flex items-center gap-2">
+                    <div className="bg-yellow-50 rounded-lg p-3 sm:p-4 border border-yellow-200">
+                      <p className="text-sm font-medium text-yellow-800 mb-1 sm:mb-2">Rate Treatment Effectiveness</p>
+                      <p className="text-xs text-yellow-600 mb-2 sm:mb-3">How well did the treatment work?</p>
+                      <div className="flex items-center gap-1 sm:gap-2">
                         {[1,2,3,4,5].map(rating => (
                           <button
                             key={rating}
                             onClick={() => onRateEffectiveness(report.id, rating)}
-                            className="p-2 hover:bg-yellow-100 rounded-lg transition-colors group"
+                            className="p-1.5 sm:p-2 hover:bg-yellow-100 rounded-lg transition-colors group"
                           >
-                            <Star className="w-6 h-6 text-gray-300 group-hover:text-yellow-400 group-hover:fill-yellow-400 transition-colors" />
+                            <Star className="w-5 h-5 sm:w-6 sm:h-6 text-gray-300 group-hover:text-yellow-400 group-hover:fill-yellow-400 transition-colors" />
                           </button>
                         ))}
                       </div>

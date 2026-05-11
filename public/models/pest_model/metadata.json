@@ -1,0 +1,42 @@
+{
+  "classes": [
+    "Fall armyworm",
+    "African Bollworm",
+    "Red Spider Mite",
+    "Stalk Borer",
+    "Aphids",
+    "Cutworm",
+    "Whitefly",
+    "Maize Weevil",
+    "Diamondback Moth",
+    "Termites",
+    "Tobacco Budworm",
+    "Quelea Birds",
+    "Fruit Fly",
+    "Cotton Stainer",
+    "Leaf Miner",
+    "Thrips",
+    "Locust",
+    "Grain Moth",
+    "Tsetse Fly",
+    "Stem Borer",
+    "Maize Streak Virus",
+    "Grey Leaf Spot",
+    "Root Knot Nematode",
+    "Bean Aphid",
+    "Tomato Blight",
+    "Cassava Mosaic Disease",
+    "Banana Weevil",
+    "Groundnut Rosette",
+    "Sugarcane Aphid",
+    "Wheat Stem Rust"
+  ],
+  "num_classes": 30,
+  "image_size": [
+    224,
+    224
+  ],
+  "text_max_length": 150,
+  "model_type": "multi_modal_pest_identification",
+  "version": "1.0"
+}
