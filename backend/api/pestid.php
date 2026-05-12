@@ -53,22 +53,25 @@ echo json_encode(['error' => 'Endpoint not found']);
 
 
 function analyzePest() {
-    // Pest scanning ML has been disabled.
+    // Placeholder: YOLO is currently running on the client (browser) via a TFJS graph model.
+    // This endpoint exists for compatibility with the frontend.
+    // If you later move YOLO inference server-side, update this function to call your backend.
     http_response_code(200);
     echo json_encode([
         'identified' => false,
         'pests' => [],
         'treatments' => [],
         'severity' => 'low',
-        'urgency' => 'Scanning disabled',
+        'urgency' => 'Use browser-based YOLO inference',
         'preventionTips' => [
-            'Pest scanning/AI identification is currently disabled in this app.',
-            'You can still save pest sightings using manual inputs (if available elsewhere).',
+            'This app performs YOLO inference in the browser when enabled.',
+            'If you see this message, ensure the YOLO model files are accessible and the browser has enough resources.'
         ],
-        'additionalNotes' => 'No AI model is available for pest identification right now.'
+        'additionalNotes' => 'YOLO inference is handled client-side for now.'
     ]);
     return;
 }
+
 
 function analyzePest_original_unused() {
     $data = json_decode(file_get_contents('php://input'), true) ?? [];

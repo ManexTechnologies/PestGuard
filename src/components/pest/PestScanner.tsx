@@ -3,8 +3,46 @@ import { Camera, Upload, X, Loader2, AlertTriangle, CheckCircle, ChevronDown, Ch
 
 import { CROP_TYPES, PROVINCES } from '@/data/pestData';
 import { recordPestSighting } from '@/lib/api';
-// Pest scanning ML has been disabled.
-// const PESTID_ENDPOINT = 'http://localhost/pestguard/backend/api/pestid.php/analyze-pest';
+
+import identifyPestLocally from '@/lib/pestIdentification';
+import { detectWithYolo } from '@/lib/yoloClassifier';
+import { KNOWLEDGE_BASE, type PestInfo } from '@/data/pestData';
+
+// Pest scanning uses client-side inference (YOLO in browser).
+const PESTID_ENDPOINT = 'http://localhost/pestguard/backend/api/pestid.php/analyze-pest';
+
+function normalizeLabel(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, ' ') // remove parentheses
+    .replace(/[^a-z0-9\s]/g, ' ') // punctuation -> space
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function mapYoloLabelToKnowledgeBase(label: string): PestInfo | null {
+  const n = normalizeLabel(label);
+  if (!n) return null;
+
+  // 1) Exact normalized name match
+  const exact = KNOWLEDGE_BASE.find((p) => normalizeLabel(p.name) === n);
+  if (exact) return exact;
+
+  // 2) Contains match (handles small training-name variants)
+  const contains = KNOWLEDGE_BASE.find((p) => {
+    const pn = normalizeLabel(p.name);
+    return pn.includes(n) || n.includes(pn);
+  });
+  if (contains) return contains;
+
+  // 3) Try scientific name partial match
+  const sci = KNOWLEDGE_BASE.find((p) => normalizeLabel(p.scientificName).includes(n) || n.includes(normalizeLabel(p.scientificName)));
+  if (sci) return sci;
+
+  return null;
+}
+
+
 
 
 
@@ -112,25 +150,80 @@ const PestScanner: React.FC<PestScannerProps> = ({ onReportSaved, userId, onSign
     setSaved(false);
 
     try {
-      // ML/model-based pest identification disabled.
-      setResult({
-        identified: false,
-        pests: [],
-        treatments: [],
-        severity: 'low',
-        urgency: 'Scanning disabled',
-        preventionTips: [
-          'Pest scanning/AI identification is currently disabled in this app.',
-          'You can still save pest sightings using manual inputs (if available elsewhere).',
-        ],
-        additionalNotes: 'No AI model is available for pest identification right now.'
-      } as IdentificationResult);
+      // Prefer YOLO (image-based). If no image is provided, fall back to local TF/KB flow.
+      if (imageBase64) {
+        const detections = await detectWithYolo(imageBase64);
+
+        const top = detections[0];
+        const pests = detections.slice(0, 3).map((d) => {
+          const kb = mapYoloLabelToKnowledgeBase(d.label);
+          return {
+            name: kb?.name ?? d.label,
+            scientificName: kb?.scientificName ?? d.label,
+            type: kb?.type ?? 'pest',
+            confidence: d.confidence,
+            description: kb?.description ?? '',
+            damageSymptoms: kb?.damageSymptoms ?? [],
+          };
+        });
+
+
+        const confidence = top?.confidence ?? 0;
+        const severity = confidence >= 85 ? 'critical' : confidence >= 65 ? 'high' : confidence >= 45 ? 'medium' : 'low';
+        const urgency =
+          severity === 'critical'
+            ? 'Immediate action required!'
+            : severity === 'high'
+              ? 'Urgent action recommended.'
+              : severity === 'medium'
+                ? 'Action needed within a week.'
+                : 'Monitor the situation.';
+
+        const topKB = top ? mapYoloLabelToKnowledgeBase(top.label) : null;
+        const treatments = topKB?.treatments?.map((t) => ({
+          name: t.name,
+          type: t.type,
+          description: t.description,
+          effectiveness: t.effectiveness,
+          cost: t.cost,
+          safetyWarning: t.safetyWarning,
+        })) ?? [];
+
+        const mapped: IdentificationResult = {
+          identified: pests.length > 0 && (top?.confidence ?? 0) > 0,
+          pests,
+          treatments,
+          severity,
+          urgency,
+          preventionTips: [
+            'Take a clearer photo focusing on the pest or the damaged plant part.',
+            'Monitor affected plants and remove heavily infested material.',
+            'Use crop-appropriate integrated pest management practices.',
+          ],
+          additionalNotes: top
+            ? `YOLO prediction: ${top.label} (confidence ${top.confidence}%).`
+            : 'No confident detection returned by YOLO.',
+        };
+
+          setResult(mapped);
+        return;
+      }
+
+      // Fallback: TensorFlow.js + knowledge-base matching (runs client-side)
+      const local = await identifyPestLocally({
+        imageBase64: imageBase64 || undefined,
+        description: description || undefined,
+        cropType: cropType || undefined,
+      });
+
+      setResult(local as unknown as IdentificationResult);
     } catch (err: any) {
       setError(err.message || 'Failed to identify pest.');
     } finally {
       setLoading(false);
     }
   };
+
 
   const handleSaveReport = async () => {
     if (!result || !result.pests?.length) return;

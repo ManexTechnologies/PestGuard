@@ -15,6 +15,10 @@ let isLoading = false;
 const CUSTOM_MODEL_URL = '/models/pest_model/saved_model/model.json';
 const METADATA_URL = '/models/pest_model/metadata.json';
 
+function isModelAvailable(): boolean {
+  return typeof window !== 'undefined';
+}
+
 /**
  * Load our custom-trained pest identification model
  */
