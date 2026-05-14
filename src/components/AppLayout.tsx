@@ -5,7 +5,7 @@ import HeroSection from './pest/HeroSection';
 import PestScanner from './pest/PestScanner';
 import PestMap from './pest/PestMap';
 import PestHistory from './pest/PestHistory';
-import KnowledgeBase from './pest/KnowledgeBase.component';
+import KnowledgeBase from './pest/KnowledgeBase';
 import EmergencyModal from './pest/EmergencyModal';
 import AuthModal from './pest/AuthModal';
 import ProfileModal from './pest/ProfileModal';
