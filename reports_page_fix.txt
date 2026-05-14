@@ -1,0 +1,8 @@
+﻿// In your existing Reports page component, replace the content with:
+import Reports from '../components/Reports/Reports';
+
+const MyReportsPage = () => {
+    return <Reports />;
+};
+
+export default MyReportsPage;

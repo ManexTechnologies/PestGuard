@@ -1,134 +1,153 @@
-// API client for communicating with PHP backend via XAMPP
-// Cast `import.meta` to `any` to avoid missing `env` typings in this project setup
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost/pestguard/backend/api';
+﻿// src/lib/api.ts
+const API_BASE_URL = 'http://localhost/pestguard';
 
-interface SignupData {
-  email: string;
-  password: string;
-  full_name?: string;
-}
-
-interface LoginData {
-  email: string;
-  password: string;
-}
-
-interface PestSighting {
-  user_id: number;
+export interface PestSighting {
+  id: number;
   pest_name: string;
   pest_type?: string;
   severity?: string;
   location?: string;
-  latitude?: number;
-  longitude?: number;
-  image_url?: string;
+  latitude?: string;
+  longitude?: string;
   description?: string;
+  image_url?: string;
+  created_at: string;
+  user_id?: number;
+  user_name?: string;
+  user_email?: string;
+  status?: string;
+  crop_affected?: string;
 }
 
-interface PestHistoryItem {
-  user_id: number;
-  sighting_id?: number;
-  action_taken?: string;
-  treatment_used?: string;
-  effectiveness?: string;
-  result?: string;
-  treated_at?: string;
-}
-
-// Helper function to make API calls
-async function apiCall(endpoint: string, method: string = 'GET', data?: unknown) {
-  const options: RequestInit = {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  };
-
-  if (data) {
-    options.body = JSON.stringify(data);
-  }
-
+// Get all pest sightings/reports
+export async function getAllPestSightings(): Promise<{ success: boolean; data: PestSighting[]; error?: string }> {
   try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
+    const url = API_BASE_URL + '/get_reports_api.php';
+    const response = await fetch(url);
     const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(result.error || `HTTP error! status: ${response.status}`);
+    
+    if (result.success) {
+      return { success: true, data: result.reports || [] };
+    } else {
+      return { success: false, data: [], error: result.message || 'Failed to fetch reports' };
     }
-
-    return result;
   } catch (error) {
-    console.error('API Error:', error);
-    throw error;
+    console.error('Error fetching reports:', error);
+    return { success: false, data: [], error: 'Network error - make sure XAMPP is running' };
   }
 }
 
-// Authentication functions
-export async function signup(signupData: SignupData) {
-  return apiCall('/auth.php/signup', 'POST', signupData);
-}
-
-export async function login(loginData: LoginData) {
-  return apiCall('/auth.php/login', 'POST', loginData);
-}
-
-export async function logout() {
-  return apiCall('/auth.php/logout', 'POST');
-}
-
-// Pest sighting functions
-export async function recordPestSighting(sightingData: PestSighting) {
-  return apiCall('/pest.php/pest-sightings', 'POST', sightingData);
-}
-
-export async function getPestSightings(userId: number) {
-  return apiCall(`/pest.php/pest-sightings?user_id=${userId}`);
-}
-
-export async function getAllPestSightings() {
-  return apiCall(`/pest.php/pest-sightings?all=true`);
-}
-
-// Pest history functions
-export async function recordPestHistory(historyData: PestHistoryItem) {
-  return apiCall('/pest.php/pest-history', 'POST', historyData);
-}
-
-export async function getPestHistory(userId: number) {
-  return apiCall(`/pest.php/pest-history?user_id=${userId}`);
-}
-
-// Knowledge base functions
-export async function getKnowledgeBase(filters?: { pest_type?: string; search?: string }) {
-  let query = '/knowledge-base.php/knowledge-base';
-  const params = new URLSearchParams();
-
-  if (filters?.pest_type) {
-    params.append('pest_type', filters.pest_type);
+// Record a new pest sighting/report
+export async function recordPestSighting(reportData: any): Promise<{ success: boolean; error?: string; data?: any }> {
+  try {
+    const url = API_BASE_URL + '/add_report_api.php';
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(reportData)
+    });
+    const result = await response.json();
+    return { success: result.success, error: result.error, data: result.data };
+  } catch (error) {
+    console.error('Error recording pest sighting:', error);
+    return { success: false, error: 'Network error' };
   }
-  if (filters?.search) {
-    params.append('search', filters.search);
-  }
-
-  if (params.toString()) {
-    query += `?${params.toString()}`;
-  }
-
-  return apiCall(query);
 }
 
-export async function createKnowledgeBaseArticle(articleData: unknown) {
-  return apiCall('/knowledge-base.php/knowledge-base', 'POST', articleData);
+// Record pest history effectiveness rating
+export async function recordPestHistory(data: {
+  user_id: number;
+  sighting_id: number;
+  effectiveness: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const url = API_BASE_URL + '/record_effectiveness.php';
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    const result = await response.json();
+    return { success: result.success, error: result.error };
+  } catch (error) {
+    console.error('Error recording effectiveness:', error);
+    return { success: false, error: 'Network error' };
+  }
 }
 
-export default {
-  signup,
-  login,
-  logout,
-  recordPestSighting,
-  getPestSightings,
-  recordPestHistory,
-  getPestHistory,
-  getKnowledgeBase,
-  createKnowledgeBaseArticle,
-};
+// Login function
+export async function login(email: string, password: string): Promise<{ success: boolean; user?: any; error?: string }> {
+  try {
+    const url = API_BASE_URL + '/login_api.php';
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const result = await response.json();
+    return { success: result.success, user: result.user, error: result.error };
+  } catch (error) {
+    console.error('Error logging in:', error);
+    return { success: false, error: 'Network error' };
+  }
+}
+
+// Signup function
+export async function signup(userData: any): Promise<{ success: boolean; user?: any; error?: string }> {
+  try {
+    const url = API_BASE_URL + '/signup_api.php';
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(userData)
+    });
+    const result = await response.json();
+    return { success: result.success, user: result.user, error: result.error };
+  } catch (error) {
+    console.error('Error signing up:', error);
+    return { success: false, error: 'Network error' };
+  }
+}
+
+// Logout function
+export async function logout(): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Clear any client-side session storage
+    localStorage.removeItem('user');
+    sessionStorage.removeItem('user');
+    return { success: true };
+  } catch (error) {
+    console.error('Error logging out:', error);
+    return { success: false, error: 'Error during logout' };
+  }
+}
+
+// Get user profile
+export async function getUserProfile(userId: number): Promise<{ success: boolean; profile?: any; error?: string }> {
+  try {
+    const url = API_BASE_URL + '/get_profile_api.php?user_id=' + userId;
+    const response = await fetch(url);
+    const result = await response.json();
+    return { success: result.success, profile: result.profile, error: result.error };
+  } catch (error) {
+    console.error('Error fetching profile:', error);
+    return { success: false, error: 'Network error' };
+  }
+}
+
+// Update user profile
+export async function updateUserProfile(userId: number, profileData: any): Promise<{ success: boolean; error?: string }> {
+  try {
+    const url = API_BASE_URL + '/update_profile_api.php';
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId, ...profileData })
+    });
+    const result = await response.json();
+    return { success: result.success, error: result.error };
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    return { success: false, error: 'Network error' };
+  }
+}

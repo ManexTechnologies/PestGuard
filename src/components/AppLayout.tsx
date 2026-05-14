@@ -5,7 +5,7 @@ import HeroSection from './pest/HeroSection';
 import PestScanner from './pest/PestScanner';
 import PestMap from './pest/PestMap';
 import PestHistory from './pest/PestHistory';
-import KnowledgeBase from './pest/KnowledgeBase';
+import KnowledgeBase from './pest/KnowledgeBase.component';
 import EmergencyModal from './pest/EmergencyModal';
 import AuthModal from './pest/AuthModal';
 import ProfileModal from './pest/ProfileModal';
@@ -53,12 +53,12 @@ const AppLayout: React.FC = () => {
           pest_name: item.pest_name,
           pest_type: item.pest_type,
           confidence: 85, // Default confidence since backend doesn't store this
-          crop_affected: item.crop_affected || 'Unknown',
+          crop_affected: item.pest_type || 'Unknown',
           severity: item.severity,
           latitude: parseFloat(item.latitude) || -17.8292,
           longitude: parseFloat(item.longitude) || 31.0522,
           location_name: item.location || 'Not specified',
-          province: item.province || 'Not specified',
+          province: 'Not specified',
           description: item.description,
           image_url: item.image_url,
           status: 'active', // Default status
@@ -148,13 +148,13 @@ const AppLayout: React.FC = () => {
           <HeroSection onTabChange={handleTabChange} stats={stats} recentAlerts={recentAlerts} />
         )}
         {activeTab === 'scan' && (
-          <PestScanner onReportSaved={fetchReports} userId={user?.id} onSignInRequired={() => setAuthOpen(true)} />
+          <PestScanner onReportSaved={fetchReports} userId={user?.id || null} onSignInRequired={() => setAuthOpen(true)} />
         )}
         {activeTab === 'map' && (
           <PestMap reports={reports} loading={reportsLoading} />
         )}
         {activeTab === 'history' && (
-          <PestHistory reports={reports} loading={reportsLoading} onRateEffectiveness={handleRateEffectiveness} userId={user?.id} />
+          <PestHistory reports={reports} loading={reportsLoading} onRateEffectiveness={handleRateEffectiveness} userId={user?.id ? String(user.id) : null} />
         )}
         {activeTab === 'resources' && <KnowledgeBase />}
       </main>
@@ -175,3 +175,4 @@ const AppLayout: React.FC = () => {
 };
 
 export default AppLayout;
+

@@ -137,3 +137,9 @@ html, body, #root {
 .markdown-preview ol {
   @apply my-4 ml-6;
 }
+
+@layer utilities {
+  .border-border {
+    border-color: hsl(var(--border));
+  }
+}

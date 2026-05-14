@@ -1,11 +1,11 @@
 ﻿import React from 'react';
-import AppLayout from './components/AppLayout';
+import PestHistory from './pages/PestHistory';
 import './index.css';
 
 function App() {
   return (
     <div className="App">
-      <AppLayout />
+      <PestHistory />
     </div>
   );
 }

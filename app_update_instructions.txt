@@ -1,0 +1,6 @@
+﻿// Add this import at the top of your App.tsx
+import Reports from './components/Reports/Reports';
+
+// Add this route in your routing configuration
+// <Route path="/reports" element={<Reports />} />
+// Or add the component directly to your main layout

@@ -5,12 +5,16 @@
  */
 
 import * as tf from '@tensorflow/tfjs';
+import { PEST_CATEGORY_MAP } from '@/data/pestCategoryMap';
 
 // Model, labels, and metadata cache
 let customModel: tf.GraphModel | null = null;
 let pestMetadata: any = null;
 let pestClasses: string[] = [];
 let isLoading = false;
+
+const DEBUG_TF = (import.meta as any).env?.VITE_DEBUG_TF === 'true';
+
 
 const CUSTOM_MODEL_URL = '/models/pest_model/saved_model/model.json';
 const METADATA_URL = '/models/pest_model/metadata.json';
@@ -38,19 +42,27 @@ export async function loadTensorFlowModel(): Promise<tf.GraphModel> {
   isLoading = true;
 
   try {
-    console.log('Loading custom-trained pest model...');
+    if (DEBUG_TF) console.log('Loading custom-trained pest model...');
     customModel = await tf.loadGraphModel(CUSTOM_MODEL_URL);
-    console.log('✓ Custom pest model loaded successfully');
+    if (DEBUG_TF) console.log('✓ Custom pest model loaded successfully');
 
     // Load metadata with class information
     try {
       const response = await fetch(METADATA_URL);
       pestMetadata = await response.json();
       pestClasses = pestMetadata.classes || [];
-      console.log(`✓ Model metadata loaded: ${pestClasses.length} pest classes`);
+      if (DEBUG_TF) {
+        console.log(`✓ Model metadata loaded: ${pestClasses.length} pest classes`);
+      }
     } catch (metadataError) {
-      console.warn('Could not load metadata, using fallback class names', metadataError);
+      if (DEBUG_TF) {
+        console.warn(
+          'Could not load metadata, using fallback class names',
+          metadataError
+        );
+      }
     }
+
 
     return customModel;
   } catch (error) {
@@ -97,7 +109,8 @@ export async function classifyImageWithTensorFlow(
 
     // Check image clarity before processing
     const clarityScore = assessImageClarity(img);
-    console.log(`Image clarity score: ${clarityScore.toFixed(2)}`);
+    if (DEBUG_TF) console.log(`Image clarity score: ${clarityScore.toFixed(2)}`);
+
 
     if (clarityScore < 0.3) {
       // Image is too unclear - return warning instead of fake results
@@ -168,7 +181,7 @@ export async function classifyImageWithTensorFlow(
     }];
 
   } catch (error) {
-    console.warn('Custom model classification failed:', error);
+    if (DEBUG_TF) console.warn('Custom model classification failed:', error);
     return [];
   }
 }
@@ -182,6 +195,7 @@ function assessImageClarity(img: HTMLImageElement): number {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     if (!ctx) return 0.5;
+
 
     canvas.width = 128;
     canvas.height = 128;
@@ -218,7 +232,7 @@ function assessImageClarity(img: HTMLImageElement): number {
     
     return clarityScore;
   } catch (error) {
-    console.warn('Could not assess image clarity:', error);
+    if (DEBUG_TF) console.warn('Could not assess image clarity:', error);
     return 0.5; // Default to uncertain
   }
 }
@@ -241,56 +255,8 @@ export function mapPredictionsToPests(
   }
 
   // Maps from pest name to category and description
-  const pestCategoryMap: Record<string, { pestType: string; reasoning: string }> = {
-    // Lepidoptera (moths/butterflies)
-    'fall armyworm': { pestType: 'lepidoptera', reasoning: 'Destructive caterpillar pest of maize and cereals' },
-    'cotton bollworm': { pestType: 'lepidoptera', reasoning: 'Major pest of cotton bolls and other fruits' },
-    'tobacco budworm': { pestType: 'lepidoptera', reasoning: 'Caterpillar pest affecting tobacco and vegetables' },
-    'stalk borer': { pestType: 'lepidoptera', reasoning: 'Larvae bore into stems causing dead hearts' },
-    'diamondback moth': { pestType: 'lepidoptera', reasoning: 'Pest of brassica vegetables' },
-    'grain moth': { pestType: 'lepidoptera', reasoning: 'Storage pest of cereals' },
-    'stem borer': { pestType: 'lepidoptera', reasoning: 'Sugarcane stem borer significantly damaging' },
+const pestCategoryMap = PEST_CATEGORY_MAP;
 
-    // Coleoptera (beetles)
-    'maize weevil': { pestType: 'coleoptera', reasoning: 'Most destructive storage pest of maize' },
-    'african bollworm': { pestType: 'coleoptera', reasoning: 'Major cotton and vegetable pest' },
-
-    // Hemiptera (true bugs/aphids)
-    'aphids': { pestType: 'hemiptera', reasoning: 'Sap-sucking pest causing stunting and disease transmission' },
-    'bean aphid': { pestType: 'hemiptera', reasoning: 'Green aphid on legume crops' },
-    'whitefly': { pestType: 'hemiptera', reasoning: 'Sap-sucking pest transmitting plant viruses' },
-    'cotton stainer': { pestType: 'hemiptera', reasoning: 'Stains cotton lint reducing quality' },
-
-    // Acarina (mites)
-    'red spider mite': { pestType: 'arachnida', reasoning: 'Mite causing severe leaf damage in hot conditions' },
-
-    // Orthoptera (locusts/grasshoppers)
-    'locust': { pestType: 'orthoptera', reasoning: 'Migratory pest causing massive crop devastation' },
-    'quelea birds': { pestType: 'aves', reasoning: 'Grain-eating birds causing crop loss' },
-
-    // Diptera (flies)
-    'fruit fly': { pestType: 'diptera', reasoning: 'Pest of citrus and other fruits' },
-    'tsetse fly': { pestType: 'diptera', reasoning: 'Blood-feeding fly affecting livestock' },
-
-    // Other pests
-    'cutworm': { pestType: 'lepidoptera', reasoning: 'Nocturnal caterpillar cutting seedlings at soil level' },
-    'leaf miner': { pestType: 'diptera', reasoning: 'Larvae mine between leaf surfaces' },
-    'thrips': { pestType: 'thysanoptera', reasoning: 'Tiny insects rasping leaf surfaces' },
-    'termites': { pestType: 'isoptera', reasoning: 'Subterranean insects attacking crop roots' },
-
-    // Diseases
-    'maize streak virus': { pestType: 'virus', reasoning: 'Viral disease causing yellow streaks' },
-    'grey leaf spot': { pestType: 'fungus', reasoning: 'Fungal disease of maize leaves' },
-    'root knot nematode': { pestType: 'nematode', reasoning: 'Root parasites causing galls and stunting' },
-    'tomato blight': { pestType: 'fungus', reasoning: 'Destructive fungal disease of tomato and potato' },
-    'cassava mosaic disease': { pestType: 'virus', reasoning: 'Viral disease of cassava' },
-    'groundnut rosette': { pestType: 'virus', reasoning: 'Viral disease causing severe stunting' },
-    'sugarcane aphid': { pestType: 'hemiptera', reasoning: 'Yellow aphid on sugarcane' },
-    'wheat stem rust': { pestType: 'fungus', reasoning: 'Destructive fungal disease of wheat' },
-
-    // Other
-    'banana weevil': { pestType: 'coleoptera', reasoning: 'Beetle pest of banana plants' }
-  };
 
   const pestResults: { pestType: string; confidence: number; reasoning: string }[] = [];
 

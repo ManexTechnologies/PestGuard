@@ -1,6 +1,7 @@
-- [x] Update src/lib/yoloClassifier.ts to apply proper YOLO confidence thresholding and safer score normalization (avoid multiple 100% outputs)
-- [x] Remove/limit temporary debug logging in YOLO classifier after fix
-- [x] Run dev server / test scan with a sample image to confirm detections no longer show 100% for multiple pests
+# TODO
 
-
+- [ ] Add YOLO debug instrumentation + safer output handling in `src/lib/yoloClassifier.ts` behind `VITE_DEBUG_YOLO`.
+- [ ] Rebuild/run and capture console output for actual YOLO output shapes.
+- [ ] Update YOLO tensor parsing to match real output layout.
+- [ ] Verify no Rollup runtime error during bundling.
 
