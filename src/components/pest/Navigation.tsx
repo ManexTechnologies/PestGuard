@@ -1,5 +1,6 @@
 import React from 'react';
-import { Home, Camera, Map, Clock, BookOpen, Phone, Menu, X, Bug, LogOut, Settings, ChevronDown, User } from 'lucide-react';
+import { Home, Camera, Map, Clock, BookOpen, Phone, Menu, X, Bug, LogOut, Settings, ChevronDown, User, Moon, Sun } from 'lucide-react';
+import { useTheme } from '@/components/theme-provider';
 import type { FarmerProfile, User as AuthUser } from '@/lib/auth';
 
 export type TabId = 'home' | 'scan' | 'map' | 'history' | 'resources';
@@ -29,6 +30,7 @@ const Navigation: React.FC<NavigationProps> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [userMenuOpen, setUserMenuOpen] = React.useState(false);
   const userMenuRef = React.useRef<HTMLDivElement>(null);
+  const { theme, setTheme } = useTheme();
 
   React.useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -48,7 +50,7 @@ const Navigation: React.FC<NavigationProps> = ({
     .slice(0, 2);
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-green-100 shadow-sm">
+    <header className="sticky top-0 z-50 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-green-100 dark:border-slate-800 shadow-sm">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 sm:h-16">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => onTabChange('home')}>
@@ -81,10 +83,19 @@ const Navigation: React.FC<NavigationProps> = ({
           <div className="flex items-center gap-1 sm:gap-2">
             <button
               onClick={onEmergencyClick}
-              className="flex items-center justify-center p-2 sm:px-3 sm:py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-sm font-medium transition-all border border-red-200 min-w-[44px] min-h-[44px]"
+              className="flex items-center justify-center p-2 sm:px-3 sm:py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-sm font-medium transition-all border border-red-200 min-w-[44px] min-h-[44px] dark:bg-red-900/20 dark:hover:bg-red-800 dark:text-red-200 dark:border-red-800"
             >
               <Phone className="w-5 h-5" />
               <span className="hidden sm:inline ml-1">Emergency</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="flex items-center justify-center p-2 sm:px-3 sm:py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-all border border-slate-200 min-w-[44px] min-h-[44px] dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-100 dark:border-slate-700"
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
 
             {user ? (

@@ -3,7 +3,6 @@ import {
   Camera,
   Upload,
   X,
-  Loader2,
   AlertTriangle,
   CheckCircle,
   Shield,
@@ -98,6 +97,7 @@ function scorePestMatch(yoloLabel: string, pest: PestInfo): number {
  * the detected class is NOT in the IP102 knowledge base.
  */
 const MATCH_THRESHOLD = 0.35; // tunable — lower = more permissive
+const CLOSE_MATCH_THRESHOLD = 0.15; // still informative for candidate suggestions
 
 export function matchIP102Pest(yoloLabel: string): PestInfo | null {
   let bestPest:  PestInfo | null = null;
@@ -116,6 +116,15 @@ export function matchIP102Pest(yoloLabel: string): PestInfo | null {
   }
 
   return null;
+}
+
+export function findClosestPestMatches(yoloLabel: string, limit = 3): PestInfo[] {
+  return ALL_PESTS
+    .map((pest) => ({ pest, score: scorePestMatch(yoloLabel, pest) }))
+    .filter((item) => item.score >= CLOSE_MATCH_THRESHOLD)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map((item) => item.pest);
 }
 
 /* ─────────────────────────────────────────────────────────────── */
@@ -161,6 +170,7 @@ interface IdentificationResult {
 interface NotInDatasetResult {
   kind: 'not_in_dataset';
   detectedLabels: string[]; // raw YOLO labels that triggered this
+  closestMatches: PestInfo[];
 }
 
 type ScanResult =
@@ -251,13 +261,17 @@ const PestScanner: React.FC<PestScannerProps> = ({
   const [result, setResult]                           = useState<IdentificationResult | null>(null);
   const [scanResult, setScanResult]                   = useState<ScanResult | null>(null);
   const [pestDetail, setPestDetail]                   = useState<PestDetail | null>(null);
+  const [notInDatasetInfo, setNotInDatasetInfo]       = useState<PestDetail | null>(null);
+  const [notInDatasetInfoLoading, setNotInDatasetInfoLoading] = useState(false);
   const [error, setError]                             = useState<string | null>(null);
   const [saving, setSaving]                           = useState(false);
   const [saved, setSaved]                             = useState(false);
   const [expandedTreatment, setExpandedTreatment]     = useState<number | null>(null);
   const [imageLoading, setImageLoading]               = useState(false);
   const [activeSymptomsStage, setActiveSymptomsStage] = useState(0);
+  const [showImageSourceModal, setShowImageSourceModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   /* ── Image compression ──────────────────────────────────────── */
   const compressImage = useCallback((file: File): Promise<string> => {
@@ -294,7 +308,22 @@ const PestScanner: React.FC<PestScannerProps> = ({
     try {
       const compressed = await compressImage(file);
       setImagePreview(compressed); setImageBase64(compressed);
+      setShowImageSourceModal(false);
     } catch { setError('Failed to process image. Please try another file.'); }
+    finally { setImageLoading(false); }
+  }, [compressImage]);
+
+  /* ── Camera capture ──────────────────────────────────────── */
+  const handleCameraCapture = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { setError('Please capture an image using your camera.'); return; }
+    setImageLoading(true); setError(null);
+    try {
+      const compressed = await compressImage(file);
+      setImagePreview(compressed); setImageBase64(compressed);
+      setShowImageSourceModal(false);
+    } catch { setError('Failed to process camera image. Please try again.'); }
     finally { setImageLoading(false); }
   }, [compressImage]);
 
@@ -344,10 +373,19 @@ const PestScanner: React.FC<PestScannerProps> = ({
 
         // ── NO IP102 MATCH: pest detected but not in our dataset ──
         if (matched.length === 0) {
+          const detectedLabels = valid.map((d) => d.label);
+          const closestMatches = findClosestPestMatches(detectedLabels[0]);
           setScanResult({
             kind: 'not_in_dataset',
-            detectedLabels: valid.map((d) => d.label),
+            detectedLabels,
+            closestMatches,
           });
+          setNotInDatasetInfo(null);
+          setNotInDatasetInfoLoading(true);
+          fetchPestInfo(detectedLabels[0])
+            .then((info) => { if (info) setNotInDatasetInfo(info); })
+            .catch(() => undefined)
+            .finally(() => setNotInDatasetInfoLoading(false));
           setLoading(false);
           return;
         }
@@ -380,18 +418,13 @@ const PestScanner: React.FC<PestScannerProps> = ({
             : 'low');
 
         const treatments: TreatmentRec[] = (topPest.treatments ?? []).map((t: any) => ({
-          name:          t.name,
-          type:          t.type,
-          description:   t.description,
-          effectiveness: t.effectiveness,
-          cost:          t.cost,
-          urgency:       t.urgency ?? (
+          ...t,
+          urgency: t.urgency ?? (
             severity === 'critical' ? 'IMMEDIATE URGENCY'
             : severity === 'high'   ? 'HIGH URGENCY'
             : severity === 'medium' ? 'MEDIUM URGENCY'
             :                         'LOW URGENCY'
           ),
-          safetyWarning: t.safetyWarning,
         }));
 
         const identified: IdentificationResult = {
@@ -458,7 +491,7 @@ const PestScanner: React.FC<PestScannerProps> = ({
 
   const handleReset = useCallback(() => {
     setImagePreview(null); setImageBase64(null); setDescription(''); setCropType('');
-    setResult(null); setScanResult(null); setPestDetail(null); setError(null); setSaved(false);
+    setResult(null); setScanResult(null); setPestDetail(null); setNotInDatasetInfo(null); setNotInDatasetInfoLoading(false); setError(null); setSaved(false);
     setExpandedTreatment(null); setActiveSymptomsStage(0);
     if (fileInputRef.current) fileInputRef.current.value = '';
   }, []);
@@ -467,6 +500,7 @@ const PestScanner: React.FC<PestScannerProps> = ({
   const showResults = result !== null;
   const showNotInDataset = scanResult?.kind === 'not_in_dataset';
   const showNoDetection  = scanResult?.kind === 'no_detection';
+  const detectedLabel = showNotInDataset ? ((scanResult as NotInDatasetResult)?.detectedLabels?.[0] ?? '') : '';
 
   /* ── Render ─────────────────────────────────────────────────── */
   return (
@@ -499,33 +533,78 @@ const PestScanner: React.FC<PestScannerProps> = ({
                       <img src={imagePreview} alt="Crop preview" className="w-full h-64 object-cover rounded-lg" />
                     </div>
                     <button
-                      onClick={() => { setImagePreview(null); setImageBase64(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                      onClick={() => { setImagePreview(null); setImageBase64(null); if (fileInputRef.current) fileInputRef.current.value = ''; if (cameraInputRef.current) cameraInputRef.current.value = ''; }}
                       className="absolute top-3 right-3 bg-black/50 hover:bg-black/70 text-white p-1.5 rounded-full transition-all opacity-0 group-hover:opacity-100"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 ) : (
-                  <div
-                    role="button" tabIndex={0}
-                    onClick={() => fileInputRef.current?.click()}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click(); }}
-                    className="border-2 border-dashed border-green-300 bg-white/30 backdrop-blur-sm hover:bg-white/50 transition-all rounded-xl h-64 flex flex-col items-center justify-center cursor-pointer"
-                  >
-                    {imageLoading ? (
-                      <Loader2 className="w-10 h-10 text-green-600 animate-spin" />
-                    ) : (
-                      <>
-                        <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4 shadow">
-                          <Camera className="w-8 h-8 text-green-600" />
+                  <>
+                    <div
+                      role="button" tabIndex={0}
+                      onClick={() => setShowImageSourceModal(true)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setShowImageSourceModal(true); }}
+                      className="border-2 border-dashed border-green-300 bg-white/30 backdrop-blur-sm hover:bg-white/50 transition-all rounded-xl h-64 flex flex-col items-center justify-center cursor-pointer"
+                    >
+                      {imageLoading ? (
+                        <div className="flex flex-col items-center justify-center gap-2 text-green-700">
+                          <div className="w-10 h-10 flex items-center justify-center rounded-full bg-green-100 text-green-600 font-semibold">
+                            ...
+                          </div>
+                          <span className="text-sm font-medium">Loading image...</span>
                         </div>
-                        <p className="font-semibold text-green-900 text-sm">Upload Crop Photo</p>
-                        <p className="text-xs text-green-600 mt-1">Click or tap to browse (JPEG, PNG)</p>
-                      </>
+                      ) : (
+                        <>
+                          <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4 shadow">
+                            <Camera className="w-8 h-8 text-green-600" />
+                          </div>
+                          <p className="font-semibold text-green-900 text-sm">Upload Crop Photo</p>
+                          <p className="text-xs text-green-600 mt-1">Click to take photo or upload from gallery</p>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Image source selection modal */}
+                    {showImageSourceModal && (
+                      <div className="fixed inset-0 z-50 bg-black/40 flex items-end md:items-center justify-center p-4">
+                        <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full animate-in slide-in-from-bottom md:slide-in-from-center">
+                          <div className="p-6 space-y-3">
+                            <h3 className="text-lg font-bold text-gray-900 mb-4">Select Image Source</h3>
+                            <button
+                              onClick={() => cameraInputRef.current?.click()}
+                              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 hover:from-blue-100 hover:to-blue-150 transition-all text-left"
+                            >
+                              <Camera className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                              <div>
+                                <p className="font-semibold text-gray-900">Take Photo</p>
+                                <p className="text-xs text-gray-600">Use your device camera</p>
+                              </div>
+                            </button>
+                            <button
+                              onClick={() => fileInputRef.current?.click()}
+                              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-green-50 to-green-100 border border-green-200 hover:from-green-100 hover:to-green-150 transition-all text-left"
+                            >
+                              <Upload className="w-5 h-5 text-green-600 flex-shrink-0" />
+                              <div>
+                                <p className="font-semibold text-gray-900">Choose from Gallery</p>
+                                <p className="text-xs text-gray-600">Select from your device storage</p>
+                              </div>
+                            </button>
+                            <button
+                              onClick={() => setShowImageSourceModal(false)}
+                              className="w-full px-4 py-3 rounded-xl text-gray-700 font-semibold bg-gray-100 hover:bg-gray-200 transition-all"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     )}
-                  </div>
+                  </>
                 )}
                 <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleImageUpload} />
+                <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleCameraCapture} />
               </div>
 
               {/* Form fields */}
@@ -553,7 +632,7 @@ const PestScanner: React.FC<PestScannerProps> = ({
                   className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading
-                    ? <><Loader2 className="w-4 h-4 animate-spin" />Analysing image...</>
+                    ? <><Upload className="w-4 h-4" />Analysing image...</>
                     : <><Upload className="w-4 h-4" />Identify Pest</>}
                 </button>
               </div>
@@ -632,8 +711,9 @@ const PestScanner: React.FC<PestScannerProps> = ({
                       <SearchX className="w-5 h-5 text-blue-600" />
                     </div>
                     <div>
-                      <h2 className="text-lg font-bold text-gray-900">Pest Not Found in Database</h2>
-                      <p className="text-sm text-blue-700 font-medium">Object detected — but not in our pest library</p>
+                      <h2 className="text-lg font-bold text-gray-900">
+                        Detected as {detectedLabel || 'an unknown species'}
+                      </h2>
                     </div>
                   </div>
 
@@ -649,12 +729,93 @@ const PestScanner: React.FC<PestScannerProps> = ({
                     </div>
                   )}
 
-                  <p className="text-sm text-gray-600 leading-relaxed mb-4">
-                    PestGuard's AI model is trained on the <strong>IP102 dataset</strong>, which covers{' '}
-                    <strong>102 common agricultural pest species</strong>. The image you uploaded appears to
-                    contain something our model detected, but it doesn't match any pest in our current library.
-                  </p>
 
+                  {notInDatasetInfoLoading && (
+                    <div className="mb-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+                      Fetching additional information for the detected species...
+                    </div>
+                  )}
+
+                  {notInDatasetInfo ? (
+                    <div className="mb-4 rounded-2xl border border-green-200 bg-green-50 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-green-700">Detected species info</p>
+                          <h3 className="text-lg font-semibold text-green-900">
+                            {notInDatasetInfo.name}
+                            <span className="ml-2 text-sm text-gray-600">({notInDatasetInfo.scientificName})</span>
+                          </h3>
+                        </div>
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${severityBadge(notInDatasetInfo.severity)}`}>
+                          {notInDatasetInfo.severity}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-700 mt-3">{notInDatasetInfo.description}</p>
+                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Pest type</p>
+                          <p className="text-sm text-gray-700">{notInDatasetInfo.type || 'Unknown'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Affected crops</p>
+                          <p className="text-sm text-gray-700">{notInDatasetInfo.affectedCrops.join(', ') || 'Unknown'}</p>
+                        </div>
+                      </div>
+                      <div className="mt-4">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Damage symptoms</p>
+                        <ul className="list-disc list-inside text-sm text-gray-700 space-y-1 mt-2">
+                          {notInDatasetInfo.damageSymptoms.map((symptom, index) => (
+                            <li key={index}>{symptom}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="mt-4">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Recommended treatment</p>
+                        <p className="text-sm text-gray-700">{notInDatasetInfo.recommendedTreatment}</p>
+                      </div>
+                      <div className="mt-4">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Prevention tips</p>
+                        <ul className="list-disc list-inside text-sm text-gray-700 space-y-1 mt-2">
+                          {notInDatasetInfo.preventionTips.map((tip, index) => (
+                            <li key={index}>{tip}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  ) : !notInDatasetInfoLoading && (
+                    <div className="mb-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+                      <p className="font-semibold text-gray-800">More details are unavailable</p>
+                      <p className="mt-2">
+                        We attempted to retrieve additional pest details for <strong>{detectedLabel || 'the detected species'}</strong>,
+                        but the lookup was not successful. This can happen when the label is outside our current pest dataset,
+                        or when the external information service is unavailable.
+                      </p>
+                      <div className="mt-3 space-y-2">
+                        <p className="font-semibold">What you can do next</p>
+                        <ul className="list-disc list-inside space-y-1">
+                          <li>Use the <strong>Pest Library</strong> to search by crop, pest type, or scientific name.</li>
+                          <li>Try the description-based identifier with damage symptoms and plant details.</li>
+                          <li>Capture a clearer close-up image if possible, focusing on the pest body and damage.</li>
+                          <li>Contact a local agricultural extension officer if you need expert confirmation.</li>
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+
+                  {(scanResult as NotInDatasetResult)?.closestMatches?.length > 0 && (
+                    <div className="mb-4 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-yellow-800">Closest library matches</p>
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                        {(scanResult as NotInDatasetResult).closestMatches.map((match, index) => (
+                          <div key={match.id || index} className="rounded-xl border border-yellow-100 bg-white p-3">
+                            <p className="text-sm font-semibold text-yellow-900">{match.name}</p>
+                            <p className="text-xs text-gray-600">{match.scientificName}</p>
+                            <p className="text-xs text-gray-500 mt-2">Type: {match.type}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
                     <p className="text-xs font-semibold text-blue-800 uppercase tracking-wide">What you can do</p>
                     <div className="space-y-2.5">
@@ -698,7 +859,7 @@ const PestScanner: React.FC<PestScannerProps> = ({
                   disabled={loading || !description.trim()}
                   className="flex-1 min-w-[140px] flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 transition-all shadow-md"
                 >
-                  {loading ? <><Loader2 className="w-4 h-4 animate-spin" />Analysing...</> : <><Bug className="w-4 h-4" />Identify by Description</>}
+                  {loading ? <><Bug className="w-4 h-4" />Analysing...</> : <><Bug className="w-4 h-4" />Identify by Description</>}
                 </button>
                 <button
                   onClick={handleReset}
@@ -917,6 +1078,207 @@ const PestScanner: React.FC<PestScannerProps> = ({
                         {isOpen && (
                           <div className="px-4 pb-4 pt-0 border-t border-green-100">
                             <p className="text-sm text-gray-600 leading-relaxed mt-3">{treatment.description}</p>
+                            
+                            {/* Dosage */}
+                            {(treatment as any).dosage && (
+                              <div className="mt-3 p-2.5 bg-blue-50 rounded-lg border border-blue-200">
+                                <p className="text-xs font-semibold text-blue-900 uppercase tracking-wide mb-1">Dosage</p>
+                                <p className="text-sm text-blue-800">{(treatment as any).dosage}</p>
+                              </div>
+                            )}
+
+                            {/* Mixing Instructions */}
+                            {(treatment as any).mixingInstructions && (
+                              <div className="mt-3 p-2.5 bg-purple-50 rounded-lg border border-purple-200">
+                                <p className="text-xs font-semibold text-purple-900 uppercase tracking-wide mb-1">Mixing Instructions</p>
+                                <p className="text-sm text-purple-800 leading-relaxed">{(treatment as any).mixingInstructions}</p>
+                              </div>
+                            )}
+
+                            {/* Application Method */}
+                            {(treatment as any).applicationMethod && (
+                              <div className="mt-3 p-2.5 bg-green-50 rounded-lg border border-green-200">
+                                <p className="text-xs font-semibold text-green-900 uppercase tracking-wide mb-1">Application Method</p>
+                                <p className="text-sm text-green-800 leading-relaxed">{(treatment as any).applicationMethod}</p>
+                              </div>
+                            )}
+
+                            {/* Timing */}
+                            {(treatment as any).timing && (
+                              <div className="mt-3 p-2.5 bg-orange-50 rounded-lg border border-orange-200">
+                                <p className="text-xs font-semibold text-orange-900 uppercase tracking-wide mb-1">Timing</p>
+                                <p className="text-sm text-orange-800 leading-relaxed">{(treatment as any).timing}</p>
+                              </div>
+                            )}
+
+                            {/* Step-by-Step Instructions */}
+                            {(treatment as any).detailedSteps && (treatment as any).detailedSteps.length > 0 && (
+                              <div className="mt-3 p-2.5 bg-indigo-50 rounded-lg border border-indigo-200">
+                                <p className="text-xs font-semibold text-indigo-900 uppercase tracking-wide mb-2">Step-by-Step Instructions</p>
+                                <ol className="space-y-2">
+                                  {(treatment as any).detailedSteps.map((step: string, idx: number) => (
+                                    <li key={idx} className="flex gap-2.5 text-sm text-indigo-800">
+                                      <span className="font-bold text-indigo-600 flex-shrink-0">{idx + 1}.</span>
+                                      <span>{step}</span>
+                                    </li>
+                                  ))}
+                                </ol>
+                              </div>
+                            )}
+
+                            {/* Biological Control Details */}
+                            {(treatment as any).biologicalControlDetails && (
+                              <div className="mt-3 space-y-2.5">
+                                <div className="p-2.5 bg-sky-50 rounded-lg border border-sky-200">
+                                  <p className="text-xs font-semibold text-sky-900 uppercase tracking-wide mb-2">Beneficial Organism</p>
+                                  <p className="text-sm text-sky-800 font-medium mb-1">{(treatment as any).biologicalControlDetails.organism}</p>
+                                  <p className="text-sm text-sky-700 leading-relaxed">{(treatment as any).biologicalControlDetails.howToUse}</p>
+                                </div>
+                                
+                                <div className="p-2.5 bg-emerald-50 rounded-lg border border-emerald-200">
+                                  <p className="text-xs font-semibold text-emerald-900 uppercase tracking-wide mb-2">Release Details</p>
+                                  <div className="space-y-1.5 text-sm text-emerald-800">
+                                    <p><span className="font-semibold">Release Rate:</span> {(treatment as any).biologicalControlDetails.releaseRate}</p>
+                                    <p><span className="font-semibold">Optimal Conditions:</span> {(treatment as any).biologicalControlDetails.conditions}</p>
+                                    <p><span className="font-semibold">Effectiveness:</span> {(treatment as any).biologicalControlDetails.effectiveness}</p>
+                                  </div>
+                                </div>
+
+                                <div className="p-2.5 bg-teal-50 rounded-lg border border-teal-200">
+                                  <p className="text-xs font-semibold text-teal-900 uppercase tracking-wide mb-2">How to Release Step-by-Step</p>
+                                  <ol className="space-y-1.5">
+                                    {(treatment as any).biologicalControlDetails.steps.map((step: string, idx: number) => (
+                                      <li key={idx} className="flex gap-2 text-xs text-teal-800">
+                                        <span className="font-bold text-teal-600 flex-shrink-0">{idx + 1}.</span>
+                                        <span>{step}</span>
+                                      </li>
+                                    ))}
+                                  </ol>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Cultural Control Details */}
+                            {(treatment as any).culturalControlDetails && (
+                              <div className="mt-3 space-y-2.5">
+                                <div className="p-2.5 bg-amber-50 rounded-lg border border-amber-200">
+                                  <p className="text-xs font-semibold text-amber-900 uppercase tracking-wide mb-2">What This Method Does</p>
+                                  <p className="text-sm text-amber-800 leading-relaxed">{(treatment as any).culturalControlDetails.description}</p>
+                                </div>
+
+                                <div className="p-2.5 bg-orange-50 rounded-lg border border-orange-200">
+                                  <p className="text-xs font-semibold text-orange-900 uppercase tracking-wide mb-2">Equipment Needed</p>
+                                  <ul className="space-y-1">
+                                    {(treatment as any).culturalControlDetails.equipment.map((item: string, idx: number) => (
+                                      <li key={idx} className="flex items-start gap-2 text-sm text-orange-800">
+                                        <div className="w-1 h-1 bg-orange-500 rounded-full mt-1.5 flex-shrink-0" />
+                                        {item}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+
+                                <div className="p-2.5 bg-yellow-50 rounded-lg border border-yellow-200">
+                                  <p className="text-xs font-semibold text-yellow-900 uppercase tracking-wide mb-2">Detailed Steps</p>
+                                  <ol className="space-y-1.5">
+                                    {(treatment as any).culturalControlDetails.steps.map((step: string, idx: number) => (
+                                      <li key={idx} className="flex gap-2 text-xs text-yellow-800">
+                                        <span className="font-bold text-yellow-700 flex-shrink-0">{idx + 1}.</span>
+                                        <span>{step}</span>
+                                      </li>
+                                    ))}
+                                  </ol>
+                                </div>
+
+                                <div className="p-2.5 bg-lime-50 rounded-lg border border-lime-200">
+                                  <p className="text-xs font-semibold text-lime-900 uppercase tracking-wide mb-1">Frequency & Results</p>
+                                  <p className="text-xs text-lime-800 mb-1"><span className="font-semibold">How Often:</span> {(treatment as any).culturalControlDetails.frequency}</p>
+                                  <p className="text-xs text-lime-800"><span className="font-semibold">Expected Results:</span> {(treatment as any).culturalControlDetails.results}</p>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Chemical Details & PPE */}
+                            {(treatment as any).chemicalDetails && (
+                              <div className="mt-3 space-y-2.5">
+                                <div className="p-2.5 bg-violet-50 rounded-lg border border-violet-200">
+                                  <p className="text-xs font-semibold text-violet-900 uppercase tracking-wide mb-2">Recommended Pesticides</p>
+                                  <div className="space-y-2">
+                                    {(treatment as any).chemicalDetails.pesticidesRecommended.map((pesti: any, idx: number) => (
+                                      <div key={idx} className="text-xs text-violet-800 bg-white/50 p-1.5 rounded border border-violet-100">
+                                        <p className="font-semibold">{pesti.name}</p>
+                                        <p><span className="font-semibold">Active:</span> {pesti.activeIngredient}</p>
+                                        <p><span className="font-semibold">Concentration:</span> {pesti.concentration}</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                <div className="p-2.5 bg-red-50 rounded-lg border border-red-200">
+                                  <p className="text-xs font-semibold text-red-900 uppercase tracking-wide mb-2">⚠️ Required Protective Equipment (PPE)</p>
+                                  <div className="space-y-2">
+                                    {(treatment as any).chemicalDetails.protectiveEquipment.map((ppe: any, idx: number) => (
+                                      <div key={idx} className="text-xs text-red-800">
+                                        <p className="font-bold text-red-900 mb-1">{ppe.category}</p>
+                                        <ul className="ml-2 space-y-0.5">
+                                          {ppe.items.map((item: string, itemIdx: number) => (
+                                            <li key={itemIdx} className="flex items-start gap-1.5">
+                                              <Shield className="w-3 h-3 text-red-600 flex-shrink-0 mt-0.5" />
+                                              {item}
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                <div className="p-2.5 bg-fuchsia-50 rounded-lg border border-fuchsia-200">
+                                  <p className="text-xs font-semibold text-fuchsia-900 uppercase tracking-wide mb-2">Application Details</p>
+                                  <div className="space-y-1.5 text-xs text-fuchsia-800">
+                                    <p><span className="font-semibold">Dilution Ratio:</span> {(treatment as any).chemicalDetails.dilutionRatio}</p>
+                                    <p><span className="font-semibold">Application Timing:</span> {(treatment as any).chemicalDetails.sprayTiming}</p>
+                                    <p><span className="font-semibold">Weather Conditions:</span> {(treatment as any).chemicalDetails.weatherConditions}</p>
+                                  </div>
+                                </div>
+
+                                <div className="p-2.5 bg-cyan-50 rounded-lg border border-cyan-200">
+                                  <p className="text-xs font-semibold text-cyan-900 uppercase tracking-wide mb-2">Detailed Application Steps</p>
+                                  <ol className="space-y-1.5">
+                                    {(treatment as any).chemicalDetails.applicationSteps.map((step: string, idx: number) => (
+                                      <li key={idx} className="flex gap-2 text-xs text-cyan-800">
+                                        <span className="font-bold text-cyan-600 flex-shrink-0">{idx + 1}.</span>
+                                        <span>{step}</span>
+                                      </li>
+                                    ))}
+                                  </ol>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Precautions */}
+                            {(treatment as any).precautions && (treatment as any).precautions.length > 0 && (
+                              <div className="mt-3 p-2.5 bg-red-50 rounded-lg border border-red-200">
+                                <p className="text-xs font-semibold text-red-900 uppercase tracking-wide mb-2">Precautions</p>
+                                <ul className="space-y-1.5">
+                                  {(treatment as any).precautions.map((precaution: string, idx: number) => (
+                                    <li key={idx} className="flex items-start gap-2 text-sm text-red-800">
+                                      <AlertTriangle className="w-3.5 h-3.5 text-red-600 flex-shrink-0 mt-0.5" />
+                                      <span>{precaution}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {/* Harvesting Wait Period */}
+                            {(treatment as any).harvesting && (
+                              <div className="mt-3 p-2.5 bg-cyan-50 rounded-lg border border-cyan-200">
+                                <p className="text-xs font-semibold text-cyan-900 uppercase tracking-wide mb-1">Harvesting Wait Period</p>
+                                <p className="text-sm text-cyan-800 font-semibold">{(treatment as any).harvesting}</p>
+                              </div>
+                            )}
+
                             {treatment.safetyWarning && (
                               <div className="mt-3 flex gap-2.5 bg-amber-50 rounded-lg p-3 border border-amber-200">
                                 <Shield className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
@@ -954,7 +1316,7 @@ const PestScanner: React.FC<PestScannerProps> = ({
                   onClick={handleSaveReport} disabled={saving}
                   className="flex-1 min-w-[140px] flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 transition-all shadow-md disabled:opacity-50"
                 >
-                  {saving ? <><Loader2 className="w-4 h-4 animate-spin" />Saving...</> : <><CheckCircle className="w-4 h-4" />Save Report</>}
+                  {saving ? <><CheckCircle className="w-4 h-4" />Saving...</> : <><CheckCircle className="w-4 h-4" />Save Report</>}
                 </button>
               ) : (
                 <div className="flex-1 min-w-[140px] flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-green-100 text-green-800 font-semibold text-sm border border-green-200">

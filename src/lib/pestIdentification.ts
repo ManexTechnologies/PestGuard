@@ -1,4 +1,4 @@
-import { KNOWLEDGE_BASE, PestInfo, Treatment } from '@/data/pestData';
+import { ALL_PESTS, PestInfo, Treatment } from '@/data/pestData';
 import { analyzePestImageWithTensorFlow } from '@/lib/tensorflowClassifier';
 
 export interface LocalPestMatch {
@@ -180,7 +180,7 @@ function identifyPestFromImageAndDescription(
   // Score pests based on TensorFlow categories and description
   const scoredPests: { pest: PestInfo; score: number; tfConfidence: number; reasoning: string }[] = [];
 
-  for (const pest of KNOWLEDGE_BASE) {
+  for (const pest of ALL_PESTS) {
     let score = 0;
     let tfConfidence = 0;
     let reasoning = '';
@@ -392,7 +392,7 @@ function identifyPestFromDescription(description: string, cropType?: string): Lo
   // Score each pest based on keyword matches
   const scoredPests: { pest: PestInfo; score: number; matchedKeywords: string[] }[] = [];
 
-  for (const pest of KNOWLEDGE_BASE) {
+  for (const pest of ALL_PESTS) {
     let score = 0;
     const matchedKeywords: string[] = [];
 
@@ -532,11 +532,11 @@ function identifyPestFromDescription(description: string, cropType?: string): Lo
  */
 function getCommonPestsFromImage(cropType?: string, imageBase64?: string): LocalIdentificationResult {
   // Filter pests by crop type if provided
-  let filteredPests = KNOWLEDGE_BASE;
+  let filteredPests = ALL_PESTS;
   
   if (cropType) {
     const cropLower = cropType.toLowerCase();
-    filteredPests = KNOWLEDGE_BASE.filter(pest =>
+    filteredPests = ALL_PESTS.filter(pest =>
       pest.cropAffected.some(c => 
         c.toLowerCase() === cropLower || 
         c.toLowerCase().includes(cropLower)

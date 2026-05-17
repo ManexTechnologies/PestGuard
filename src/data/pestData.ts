@@ -8,6 +8,47 @@ export interface Treatment {
   cost: string;
   urgency?: string;
   safetyWarning?: string;
+  applicationMethod?: string;
+  mixingInstructions?: string;
+  precautions?: string[];
+  dosage?: string;
+  timing?: string;
+  harvesting?: string;
+  detailedSteps?: string[];
+  biologicalControlDetails?: {
+    organism?: string;
+    howToUse?: string;
+    releaseRate?: string;
+    conditions?: string;
+    effectiveness?: string;
+    steps: string[];
+    frequency?: string;
+    equipment?: string[];
+    description?: string;
+    results?: string;
+  };
+  culturalControlDetails?: {
+    description: string;
+    steps: string[];
+    frequency: string;
+    equipment: string[];
+    results: string;
+  };
+  chemicalDetails?: {
+    pesticidesRecommended: {
+      name: string;
+      activeIngredient: string;
+      concentration: string;
+    }[];
+    applicationSteps: string[];
+    protectiveEquipment: {
+      category: string;
+      items: string[];
+    }[];
+    dilutionRatio: string;
+    sprayTiming: string;
+    weatherConditions: string;
+  };
 }
 
 export interface PestInfo {
@@ -19,11 +60,11 @@ export interface PestInfo {
   season: string;
   description: string;
   damageSymptoms: string[];
-  cropAffected: string[];
+  cropAffected: string | string[];
   treatments: Treatment[];
   preventionTips: string[];
   imageUrl: string;
-  affectedCrops?: string[];
+  affectedCrops?: string | string[];
   favourableConditions?: string;
   spreadMechanism?: string;
   emergencyThreshold?: string;
@@ -39,10 +80,10 @@ export interface PestInfo {
 }
 
 export const CROP_TYPES = [
-  'Rice', 'Maize', 'Wheat', 'Soybean', 'Cotton', 'Tobacco', 'Tomato', 
-  'Potato', 'Pepper', 'Cucumber', 'Cabbage', 'Beans', 'Groundnut', 
-  'Sorghum', 'Millet', 'Sunflower', 'Sugarcane', 'Coffee', 'Tea', 
-  'Cassava', 'Citrus', 'Mango', 'Apple', 'Pear', 'Grape', 'Alfalfa', 
+  'Rice', 'Maize', 'Wheat', 'Soybean', 'Cotton', 'Tobacco', 'Tomato',
+  'Potato', 'Pepper', 'Cucumber', 'Cabbage', 'Beans', 'Groundnut',
+  'Sorghum', 'Millet', 'Sunflower', 'Sugarcane', 'Coffee', 'Tea',
+  'Cassava', 'Citrus', 'Mango', 'Apple', 'Pear', 'Grape', 'Alfalfa',
   'Sugar Beet', 'Flax', 'Peach', 'Plum', 'Jujube', 'Tea Oil', 'Mulberry'
 ];
 
@@ -80,7 +121,6 @@ export const PROVINCES = [
   'Midlands',
 ];
 
-// Pest report as stored/returned by the backend
 export interface PestReport {
   id: string;
   pest_name: string;
@@ -88,8 +128,8 @@ export interface PestReport {
   confidence: number;
   crop_affected: string;
   severity: string;
-  latitude: number;
-  longitude: number;
+  latitude?: number;
+  longitude?: number;
   location_name: string;
   province: string;
   description?: string;
@@ -102,9 +142,39 @@ export interface PestReport {
   treatment_applied?: string;
 }
 
-// Generate pest data for all 102 IP102 pests
+// ─── Helper: shared PPE blocks ───────────────────────────────────────────────
+const STANDARD_PPE = [
+  { category: 'Head & Face',            items: ['Wide-brimmed hat or cap', 'Safety goggles for eye protection', 'Dust mask or P2 respirator'] },
+  { category: 'Body Protection',        items: ['Long-sleeved shirt (light colored)', 'Full-length trousers (not shorts)', 'Chemical-resistant apron'] },
+  { category: 'Hand & Feet Protection', items: ['Chemical-resistant gloves (nitrile or PVC)', 'Closed-toe shoes or rubber boots', 'Socks covering ankles'] },
+  { category: 'Additional PPE',         items: ['Face shield for additional facial protection', 'Disposable coveralls for extensive handling', 'Chemical-resistant boot covers'] },
+];
+
+const STANDARD_APP_STEPS = [
+  'Wear complete protective equipment before handling chemicals',
+  'Calibrate spray equipment for accurate dosage and coverage',
+  'Measure correct amount of pesticide as per label',
+  'Fill spray tank halfway with clean water',
+  'Add pesticide and mix thoroughly with agitation',
+  'Add remaining water while continuing agitation',
+  'Apply uniform coverage over affected plants',
+  'Use appropriate nozzle for thorough penetration',
+  'Apply during early morning or late afternoon',
+  'Avoid application during wind conditions',
+  'Do not apply if rain expected within 6 hours',
+  'Mark treated areas with warning signs',
+  'Restrict access to treated areas',
+  'Clean spray equipment thoroughly after use',
+  'Store remaining product safely and securely',
+  'Monitor pest population reduction',
+  'Make additional applications only if needed',
+  'Rotate with different pesticide classes',
+  'Implement integrated pest management practices',
+];
+
+// ─── Knowledge Base ───────────────────────────────────────────────────────────
 export const KNOWLEDGE_BASE: PestInfo[] = [
-  // RICE PESTS (1-20)
+  // ── ID 1: Rice Leaf Roller ────────────────────────────────────────────────
   {
     id: '1',
     name: 'Rice Leaf Roller',
@@ -120,23 +190,105 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     spreadMechanism: 'Adult moths fly at night. Spread through wind currents and infested seedlings.',
     emergencyThreshold: '10% of leaves with fresh folds or 1 larva per hill',
     symptomsStages: {
-      early: ['Small folded leaf tips', 'Minor white streaks', 'Few visible larvae'],
+      early:    ['Small folded leaf tips', 'Minor white streaks', 'Few visible larvae'],
       advanced: ['Multiple leaf folds per plant', 'Extensive white patches', 'Larvae visible inside folds'],
-      severe: ['Complete leaf damage', 'Stunted plant growth', '40-60% yield reduction']
+      severe:   ['Complete leaf damage', 'Stunted plant growth', '40-60% yield reduction'],
     },
     lifecycle: 'Egg (4-7 days) → Larva (15-25 days) → Pupa (6-8 days) → Adult (5-10 days). Complete cycle 30-50 days.',
     naturalEnemies: ['Trichogramma wasps', 'Telenomus spiders', 'Ladybird beetles', 'Spiders'],
     resistanceRisk: 'medium',
     treatments: [
-      { name: 'Pheromone Traps', type: 'cultural', description: 'Install 10 traps per hectare for monitoring and mass trapping', effectiveness: '55%', cost: 'Low', urgency: 'LOW URGENCY' },
-      { name: 'Neem Extract', type: 'organic', description: 'Apply 5% neem seed extract every 7-10 days', effectiveness: '65%', cost: 'Low', urgency: 'MEDIUM URGENCY' },
-      { name: 'Trichogramma Wasps', type: 'biological', description: 'Release 150,000 wasps per hectare weekly', effectiveness: '75%', cost: 'Moderate', urgency: 'MEDIUM URGENCY' },
-      { name: 'Chlorantraniliprole', type: 'chemical', description: 'Apply 0.3 ml/L at early larval stage', effectiveness: '90%', cost: 'Moderate', urgency: 'HIGH URGENCY', safetyWarning: 'Toxic to aquatic life. Rotate with other chemistries.' }
+      {
+        name: 'Neem Extract',
+        type: 'organic',
+        description: 'Apply 5% neem seed extract every 7-10 days',
+        effectiveness: '65%',
+        cost: 'Low',
+        urgency: 'MEDIUM URGENCY',
+        mixingInstructions: 'Mix 50g neem powder in 1L water + 10ml soap solution',
+        applicationMethod: 'Spray on leaves early morning or late evening',
+        dosage: '500-600 L/ha',
+        precautions: ['Use within 2-3 hours of mixing', 'Avoid spraying during sunlight hours', 'Do not mix with alkaline substances'],
+        timing: 'Repeat every 7-10 days',
+        harvesting: '3-5 days wait period',
+        detailedSteps: [
+          'Wear protective gloves and eye protection while handling neem powder',
+          'Measure 50g of quality neem powder',
+          'Add 1 liter of clean water to a container and stir well',
+          'Mix the neem powder gradually into water while stirring',
+          'Add 10ml of mild soap solution to help with leaf adhesion',
+          'Let the mixture sit for 30 minutes while stirring occasionally',
+          'Strain through fine cloth to remove particles',
+          'Use within 2-3 hours of preparation',
+          'Fill sprayer and apply thoroughly to both upper and lower leaf surfaces',
+          'Apply early morning (before 8am) or late evening (after 4pm)',
+          'Ensure thorough coverage especially on the underside of leaves',
+          'Repeat application every 7-10 days or after rain',
+          'Continue for 3-4 weeks during heavy infestation',
+        ],
+      },
+      {
+        name: 'Trichogramma Wasps',
+        type: 'biological',
+        description: 'Release 150,000 wasps per hectare weekly',
+        effectiveness: '75%',
+        cost: 'Moderate',
+        urgency: 'MEDIUM URGENCY',
+        applicationMethod: 'Release cocoons in field early morning',
+        dosage: '150,000 wasps/ha',
+        precautions: ['Avoid insecticide sprays 48 hours after release', 'Maintain 60-80% humidity', 'Temperature 20-30°C optimal'],
+        timing: 'Release at egg laying stage',
+        harvesting: 'No restrictions',
+        biologicalControlDetails: {
+          organism: 'Trichogramma japonicum - parasitic wasp that lays eggs inside rice leaf roller eggs',
+          howToUse: 'These tiny wasps parasitize rice leaf roller eggs, preventing larval emergence.',
+          releaseRate: '150,000 wasps per hectare weekly',
+          conditions: 'Optimal: 60-80% humidity and 20-30°C. Avoid releasing during rain.',
+          effectiveness: '75% egg parasitization rate under ideal conditions',
+          steps: [
+            'Time releases to coincide with peak egg laying',
+            'Order wasps from certified biological control suppliers',
+            'Keep cool during transport',
+            'Release early in the morning',
+            'Scatter wasp emergence cards throughout the field',
+            'Avoid broad-spectrum insecticides for at least 2 weeks before and after release',
+            'Make weekly releases for continuous control',
+            'Monitor parasitism rate by collecting leaf roller eggs',
+          ],
+        },
+      },
+      {
+        name: 'Chlorantraniliprole',
+        type: 'chemical',
+        description: 'Apply 0.3 ml/L at early larval stage',
+        effectiveness: '90%',
+        cost: 'Moderate',
+        urgency: 'HIGH URGENCY',
+        mixingInstructions: 'Dilute 0.3 ml concentrate in 1L water + 2ml surfactant',
+        applicationMethod: 'Spray thoroughly covering both leaf surfaces',
+        dosage: '200-300 L/ha',
+        precautions: ['Wear protective clothing and mask', 'Toxic to aquatic life', 'Rotate with other chemistries to prevent resistance'],
+        timing: 'Apply at early larval stage (3-5 leaves)',
+        harvesting: '21-day waiting period',
+        safetyWarning: 'Highly toxic to aquatic life. Observe 21-day pre-harvest interval.',
+        chemicalDetails: {
+          pesticidesRecommended: [
+            { name: 'Coragen / Chlorantraniliprole 18.5% SC', activeIngredient: 'Chlorantraniliprole (anthranilic diamide)', concentration: '18.5% suspension concentrate' },
+          ],
+          applicationSteps: STANDARD_APP_STEPS,
+          protectiveEquipment: STANDARD_PPE,
+          dilutionRatio: '0.3 ml concentrate per 1 liter water',
+          sprayTiming: 'Early morning (6-8am) or late evening (4-6pm)',
+          weatherConditions: 'Temperature 18-25°C, humidity <80%, wind speed <5 km/h, no rain for 24 hours',
+        },
+      },
     ],
     preventionTips: ['Use resistant varieties', 'Avoid dense planting', 'Remove weed hosts', 'Practice synchronized planting'],
     imageUrl: 'https://images.unsplash.com/photo-1586003148644-c641c2879b39?w=400&h=300&fit=crop',
-    imageCredits: 'Photo by Agus Dietrich on Unsplash'
+    imageCredits: 'Photo by Agus Dietrich on Unsplash',
   },
+
+  // ── ID 2: Rice Leaf Caterpillar ───────────────────────────────────────────
   {
     id: '2',
     name: 'Rice Leaf Caterpillar',
@@ -148,27 +300,107 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     damageSymptoms: ['Notches on leaf margins', 'Irregular holes in leaves', 'Reduced leaf area', 'Stunted growth'],
     cropAffected: ['Rice'],
     affectedCrops: ['Rice', 'Wheat'],
-    favourableConditions: 'Warm temperatures with moderate humidity. Overlapping rice crops favor buildup.',
-    spreadMechanism: 'Adult weevils walk and fly short distances. Spread through infested crop residue.',
+    favourableConditions: 'Warm temperatures with moderate humidity.',
+    spreadMechanism: 'Adult weevils walk and fly short distances.',
     emergencyThreshold: '25% leaf damage or 5 larvae per square meter',
     symptomsStages: {
-      early: ['Small notches on leaf edges', 'Minor leaf tearing', 'Slight defoliation'],
+      early:    ['Small notches on leaf edges', 'Minor leaf tearing', 'Slight defoliation'],
       advanced: ['Large irregular holes', 'Extensive leaf damage', 'Visible larvae feeding at night'],
-      severe: ['Complete defoliation', 'Plant skeletal remains', 'Severe stunting']
+      severe:   ['Complete defoliation', 'Plant skeletal remains', 'Severe stunting'],
     },
     lifecycle: 'Egg (5-8 days) → Larva (20-30 days) → Pupa (7-10 days) → Adult (10-15 days)',
     naturalEnemies: ['Parasitic wasps', 'Ground beetles', 'Robber flies'],
     resistanceRisk: 'low',
     treatments: [
-      { name: 'Hand Picking', type: 'cultural', description: 'Collect and destroy larvae and adults early morning', effectiveness: '40%', cost: 'Free', urgency: 'LOW URGENCY' },
-      { name: 'Chili Garlic Spray', type: 'organic', description: 'Blend 10 chili peppers + 10 garlic cloves, strain and spray', effectiveness: '60%', cost: 'Low', urgency: 'MEDIUM URGENCY' },
-      { name: 'Bacillus thuringiensis', type: 'biological', description: 'Apply 1 kg/ha during early larval stages', effectiveness: '75%', cost: 'Low', urgency: 'MEDIUM URGENCY' },
-      { name: 'Lambda-cyhalothrin', type: 'chemical', description: 'Apply 0.5 ml/L when larvae are small', effectiveness: '88%', cost: 'Low', urgency: 'HIGH URGENCY', safetyWarning: 'Toxic to fish and bees. Observe 21-day PHI.' }
+      {
+        name: 'Chili Garlic Spray',
+        type: 'organic',
+        description: 'Blend 10 chili peppers + 10 garlic cloves, strain and spray',
+        effectiveness: '60%',
+        cost: 'Low',
+        urgency: 'MEDIUM URGENCY',
+        mixingInstructions: 'Blend ingredients, strain, add water and soap',
+        applicationMethod: 'Spray on affected plants',
+        dosage: '1 liter spray per 100 sq meters',
+        precautions: ['Test on small area first', 'Avoid spraying in direct sunlight', 'Wear gloves during preparation'],
+        timing: 'Early morning or late evening',
+        harvesting: '7-day wait period',
+        detailedSteps: [
+          'Wear protective gloves and eye protection during preparation',
+          'Take 10 fresh chili peppers and 10 garlic cloves',
+          'Blend with 500ml water until smooth',
+          'Let the mixture sit for 30 minutes',
+          'Strain through fine cloth',
+          'Add 4 liters of clean water and 20ml dish soap',
+          'Stir thoroughly for 2-3 minutes',
+          'Test spray on a small area first',
+          'Apply early morning or late evening',
+          'Spray thoroughly on both sides of leaves',
+          'Repeat every 5-7 days during infestation',
+        ],
+      },
+      {
+        name: 'Bacillus thuringiensis',
+        type: 'biological',
+        description: 'Apply 1 kg/ha during early larval stages',
+        effectiveness: '75%',
+        cost: 'Low',
+        urgency: 'MEDIUM URGENCY',
+        applicationMethod: 'Spray on foliage when larvae are feeding',
+        dosage: '1 kg/ha',
+        precautions: ['Apply when larvae are small', 'Avoid broad-spectrum insecticides', 'Store in cool place'],
+        timing: 'Early larval stages (1-2 instar)',
+        harvesting: 'No restrictions',
+        biologicalControlDetails: {
+          organism: 'Bacillus thuringiensis (Bt) kurstaki strain - soil bacterium',
+          howToUse: 'Bt produces toxins that paralyze the digestive system of caterpillars when ingested.',
+          releaseRate: '1 kg of Bt formulation per hectare',
+          conditions: 'Apply when larvae are actively feeding. Best at 20-30°C with moderate humidity.',
+          effectiveness: '75-85% control of young caterpillars',
+          steps: [
+            'Identify early larval stages',
+            'Purchase commercial Bt formulation from agricultural suppliers',
+            'Mix 1 kg of Bt with 200-300 liters of water per hectare',
+            'Add 0.1% wetting agent',
+            'Apply as coarse spray to avoid drift',
+            'Target young larvae',
+            'Spray in early morning or late evening',
+            'Repeat application every 7-10 days if needed',
+          ],
+        },
+      },
+      {
+        name: 'Lambda-cyhalothrin',
+        type: 'chemical',
+        description: 'Apply 0.5 ml/L when larvae are small',
+        effectiveness: '88%',
+        cost: 'Low',
+        urgency: 'HIGH URGENCY',
+        mixingInstructions: 'Dilute 0.5 ml concentrate in 1 liter water',
+        applicationMethod: 'Spray on foliage targeting larvae',
+        dosage: '0.5 ml/L (250-300 ml/ha)',
+        precautions: ['Wear protective clothing', 'Avoid spraying near water sources', 'Do not apply during windy conditions'],
+        timing: 'Early morning or late evening',
+        harvesting: '14-day waiting period',
+        safetyWarning: 'Toxic to fish, bees, and beneficial insects. Observe 14-day pre-harvest interval.',
+        chemicalDetails: {
+          pesticidesRecommended: [
+            { name: 'Karate / Lambda-cyhalothrin 5% EC', activeIngredient: 'Lambda-cyhalothrin (pyrethroid)', concentration: '5% emulsifiable concentrate' },
+          ],
+          applicationSteps: STANDARD_APP_STEPS,
+          protectiveEquipment: STANDARD_PPE,
+          dilutionRatio: '0.5 ml concentrate per 1 liter water',
+          sprayTiming: 'Early morning (6-8am) or late evening (5-7pm)',
+          weatherConditions: 'Temperature 20-30°C, humidity <80%, wind speed <5 km/h, no rain for 6 hours',
+        },
+      },
     ],
     preventionTips: ['Early planting', 'Destroy crop residues', 'Use light traps', 'Conserve natural enemies'],
     imageUrl: 'https://images.unsplash.com/photo-1586003148644-c641c2879b39?w=400&h=300&fit=crop',
-    imageCredits: 'Photo by Agus Dietrich on Unsplash'
+    imageCredits: 'Photo by Agus Dietrich on Unsplash',
   },
+
+  // ── ID 3: Paddy Stem Maggot ───────────────────────────────────────────────
   {
     id: '3',
     name: 'Paddy Stem Maggot',
@@ -184,22 +416,72 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     spreadMechanism: 'Adult flies active in morning. Spread through wind and infested stubble.',
     emergencyThreshold: '10% dead hearts or 20% white heads',
     symptomsStages: {
-      early: ['Yellowing of central leaf', 'Slight stunting of tillers', 'Minor dead hearts'],
+      early:    ['Yellowing of central leaf', 'Slight stunting of tillers', 'Minor dead hearts'],
       advanced: ['Dead heart easily pulled', 'Foul smell from damaged stems', 'White heads emerging'],
-      severe: ['50%+ white heads', 'Severe yield reduction', 'Complete tiller death']
+      severe:   ['50%+ white heads', 'Severe yield reduction', 'Complete tiller death'],
     },
     lifecycle: 'Egg (3-5 days) → Larva (10-14 days) → Pupa (7-10 days) → Adult (5-7 days)',
     naturalEnemies: ['Parasitic wasps (Hymenoptera)', 'Ground beetles', 'Rove beetles'],
     resistanceRisk: 'low',
     treatments: [
-      { name: 'Remove Infested Stubble', type: 'cultural', description: 'Plow under crop residues after harvest', effectiveness: '50%', cost: 'Free', urgency: 'LOW URGENCY' },
-      { name: 'Light Traps', type: 'cultural', description: 'Install light traps to attract and kill adult flies', effectiveness: '55%', cost: 'Low', urgency: 'MEDIUM URGENCY' },
-      { name: 'Fipronil Granules', type: 'chemical', description: 'Apply 10 kg/ha at planting', effectiveness: '85%', cost: 'Moderate', urgency: 'HIGH URGENCY', safetyWarning: 'Highly toxic to aquatic organisms. Avoid overuse.' }
+      {
+        name: 'Light Traps',
+        type: 'cultural',
+        description: 'Install light traps to attract and kill adult flies',
+        effectiveness: '55%',
+        cost: 'Low',
+        urgency: 'MEDIUM URGENCY',
+        applicationMethod: 'Place traps in field at dusk',
+        timing: 'During adult fly emergence period',
+        harvesting: 'No restrictions',
+        culturalControlDetails: {
+          description: 'Light traps attract adult stem maggot flies using UV light, reducing mating and egg laying.',
+          steps: [
+            'Purchase battery-operated or solar-powered light traps',
+            'Install traps 2-3 weeks before expected fly emergence',
+            'Place traps at field edges at 50-meter intervals',
+            'Position traps 1-2 meters above ground level',
+            'Turn on traps at dusk',
+            'Check traps daily at dawn and empty collected insects',
+            'Continue trapping for 4-6 weeks during emergence period',
+          ],
+          frequency: 'Daily checking, continuous operation during emergence',
+          equipment: ['UV light traps (battery/solar powered)', 'Insect collection containers', 'Data recording notebook'],
+          results: 'Reduces adult fly population by 40-60%',
+        },
+      },
+      {
+        name: 'Fipronil Granules',
+        type: 'chemical',
+        description: 'Apply 10 kg/ha at planting',
+        effectiveness: '85%',
+        cost: 'Moderate',
+        urgency: 'HIGH URGENCY',
+        mixingInstructions: 'Apply directly to soil at planting',
+        applicationMethod: 'Broadcast granules in nursery or field',
+        dosage: '10 kg/ha',
+        precautions: ['Wear protective clothing', 'Avoid contact with skin and eyes', 'Keep away from children and animals'],
+        timing: 'At transplanting or direct seeding',
+        harvesting: '30-day waiting period',
+        safetyWarning: 'Highly toxic to aquatic organisms and bees. Observe 30-day pre-harvest interval.',
+        chemicalDetails: {
+          pesticidesRecommended: [
+            { name: 'Regent / Fipronil 0.3% GR', activeIngredient: 'Fipronil (phenylpyrazole)', concentration: '0.3% granules' },
+          ],
+          applicationSteps: STANDARD_APP_STEPS,
+          protectiveEquipment: STANDARD_PPE,
+          dilutionRatio: 'No dilution - apply granules directly at 10 kg/ha',
+          sprayTiming: 'Apply at transplanting time',
+          weatherConditions: 'Calm weather (<5 km/h wind), dry soil, no rain expected for 24 hours',
+        },
+      },
     ],
     preventionTips: ['Drain fields periodically', 'Use resistant varieties', 'Balanced nitrogen use', 'Crop rotation'],
     imageUrl: 'https://images.unsplash.com/photo-1586003148644-c641c2879b39?w=400&h=300&fit=crop',
-    imageCredits: 'Photo by Agus Dietrich on Unsplash'
+    imageCredits: 'Photo by Agus Dietrich on Unsplash',
   },
+
+  // ── ID 4: Asiatic Rice Borer ──────────────────────────────────────────────
   {
     id: '4',
     name: 'Asiatic Rice Borer',
@@ -215,22 +497,74 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     spreadMechanism: 'Moths active at night. Spread through wind and infested rice straw.',
     emergencyThreshold: '10% dead hearts or 5% white heads',
     symptomsStages: {
-      early: ['Small holes on stems', 'Fecal pellets near entry', 'Slight yellowing of central leaf'],
+      early:    ['Small holes on stems', 'Fecal pellets near entry', 'Slight yellowing of central leaf'],
       advanced: ['Dead heart development', 'Stem tunneling visible', 'White heads emerging'],
-      severe: ['60-80% white heads', 'Complete crop loss possible', 'Stems hollowed throughout']
+      severe:   ['60-80% white heads', 'Complete crop loss possible', 'Stems hollowed throughout'],
     },
     lifecycle: 'Egg (5-7 days) → Larva (25-40 days) → Pupa (6-12 days) → Adult (5-8 days)',
     naturalEnemies: ['Trichogramma japonicum', 'Telenomus dignus', 'Xanthopimpla stemmator', 'Spiders'],
     resistanceRisk: 'high',
     treatments: [
-      { name: 'Pheromone Traps', type: 'cultural', description: 'Install 15 traps per hectare for monitoring', effectiveness: '55%', cost: 'Low', urgency: 'LOW URGENCY' },
-      { name: 'Egg Parasitoids', type: 'biological', description: 'Release Trichogramma japonicum at 150,000/ha', effectiveness: '70%', cost: 'Moderate', urgency: 'MEDIUM URGENCY' },
-      { name: 'Chlorantraniliprole', type: 'chemical', description: 'Apply 0.4 ml/L at egg hatch stage', effectiveness: '92%', cost: 'Moderate', urgency: 'HIGH URGENCY', safetyWarning: 'Resistance management required. Rotate chemicals.' }
+      {
+        name: 'Egg Parasitoids',
+        type: 'biological',
+        description: 'Release Trichogramma japonicum at 150,000/ha',
+        effectiveness: '70%',
+        cost: 'Moderate',
+        urgency: 'MEDIUM URGENCY',
+        applicationMethod: 'Release parasitoid cards in field',
+        dosage: '150,000 wasps per hectare',
+        precautions: ['Avoid insecticide application 2 weeks before/after release', 'Release during cool morning hours'],
+        timing: 'At egg laying peak, 2-3 weeks after transplanting',
+        harvesting: 'No restrictions',
+        biologicalControlDetails: {
+          organism: 'Trichogramma japonicum - tiny egg parasitoid wasp',
+          howToUse: 'These wasps parasitize rice borer eggs, preventing larval emergence.',
+          releaseRate: '150,000 wasps per hectare weekly for 3-4 weeks',
+          conditions: 'Temperature 20-30°C, humidity 60-80%, no insecticides for 2 weeks',
+          effectiveness: '70-80% egg parasitism rate under optimal conditions',
+          steps: [
+            'Monitor rice fields for egg masses using pheromone traps',
+            'Time releases to coincide with peak egg laying period',
+            'Order Trichogramma japonicum from certified biological suppliers',
+            'Release early in the morning (6-8am)',
+            'Distribute emergence cards evenly throughout the field',
+            'Make multiple releases (3-4 times) at weekly intervals',
+          ],
+        },
+      },
+      {
+        name: 'Chlorantraniliprole',
+        type: 'chemical',
+        description: 'Apply 0.4 ml/L at egg hatch stage',
+        effectiveness: '92%',
+        cost: 'Moderate',
+        urgency: 'HIGH URGENCY',
+        mixingInstructions: 'Dilute 0.4 ml concentrate in 1 liter water',
+        applicationMethod: 'Spray on rice plants targeting young larvae',
+        dosage: '0.4 ml/L (200-250 ml/ha)',
+        precautions: ['Wear protective clothing', 'Avoid application during windy conditions', 'Rotate with different chemical classes'],
+        timing: 'At egg hatch when young larvae appear',
+        harvesting: '21-day waiting period',
+        safetyWarning: 'Resistance management required. Rotate chemicals. Toxic to aquatic life.',
+        chemicalDetails: {
+          pesticidesRecommended: [
+            { name: 'Coragen / Chlorantraniliprole 18.5% SC', activeIngredient: 'Chlorantraniliprole (anthranilic diamide)', concentration: '18.5% suspension concentrate' },
+          ],
+          applicationSteps: STANDARD_APP_STEPS,
+          protectiveEquipment: STANDARD_PPE,
+          dilutionRatio: '0.4 ml concentrate per 1 liter water',
+          sprayTiming: 'Early morning (6-8am) or late evening (5-7pm)',
+          weatherConditions: 'Temperature 20-30°C, humidity 50-80%, wind speed <5 km/h, no rain for 6 hours',
+        },
+      },
     ],
     preventionTips: ['Use resistant varieties', 'Destroy crop residues', 'Synchronized planting', 'Avoid ratoon crops'],
     imageUrl: 'https://images.unsplash.com/photo-1586003148644-c641c2879b39?w=400&h=300&fit=crop',
-    imageCredits: 'Photo by Agus Dietrich on Unsplash'
+    imageCredits: 'Photo by Agus Dietrich on Unsplash',
   },
+
+  // ── ID 5: Yellow Rice Borer ───────────────────────────────────────────────
   {
     id: '5',
     name: 'Yellow Rice Borer',
@@ -242,26 +576,75 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     damageSymptoms: ['Yellowish eggs masses on leaf tips', 'Dead hearts', 'White heads', 'Stem breakage'],
     cropAffected: ['Rice'],
     affectedCrops: ['Rice'],
-    favourableConditions: 'High humidity with temperatures 25-30°C. Vigorous crops attract more egg laying.',
+    favourableConditions: 'High humidity with temperatures 25-30°C.',
     spreadMechanism: 'Moths fly strong distances. Spread through wind and infested rice.',
     emergencyThreshold: '5% egg masses or 10% dead hearts',
     symptomsStages: {
-      early: ['Yellow egg masses on leaf tips', 'Small entry holes in stems', 'Minor dead hearts'],
+      early:    ['Yellow egg masses on leaf tips', 'Small entry holes in stems', 'Minor dead hearts'],
       advanced: ['Multiple dead hearts per hill', 'Developing white heads', 'Stem tunneling extensive'],
-      severe: ['80% white heads', 'Heavy stem breakage', 'Crop lodging common']
+      severe:   ['80% white heads', 'Heavy stem breakage', 'Crop lodging common'],
     },
     lifecycle: 'Egg (5-8 days) → Larva (28-42 days) → Pupa (8-12 days) → Adult (4-6 days)',
     naturalEnemies: ['Tetrastichus schoenobii', 'Telenomus dignus', 'Spiders', 'Dragonflies'],
     resistanceRisk: 'medium',
     treatments: [
-      { name: 'Remove Egg Masses', type: 'cultural', description: 'Collect and destroy egg masses on leaf tips', effectiveness: '45%', cost: 'Free', urgency: 'LOW URGENCY' },
-      { name: 'Neem Oil Spray', type: 'organic', description: 'Apply 2% neem oil at egg laying period', effectiveness: '60%', cost: 'Low', urgency: 'MEDIUM URGENCY' },
-      { name: 'Flubendiamide', type: 'chemical', description: 'Apply 0.3 ml/L at early larval stage', effectiveness: '94%', cost: 'High', urgency: 'HIGH URGENCY', safetyWarning: 'Highly toxic to silkworms. Avoid drift to mulberry.' }
+      {
+        name: 'Neem Oil Spray',
+        type: 'organic',
+        description: 'Apply 2% neem oil at egg laying period',
+        effectiveness: '60%',
+        cost: 'Low',
+        urgency: 'MEDIUM URGENCY',
+        mixingInstructions: 'Mix 20ml neem oil in 1 liter water with soap',
+        applicationMethod: 'Spray on leaf tips and stems',
+        dosage: '2% solution (400-500 ml/ha)',
+        precautions: ['Test on small area first', 'Apply during cool hours', 'Avoid mixing with alkaline substances'],
+        timing: 'During egg laying and early larval stages',
+        harvesting: '7-day wait period',
+        detailedSteps: [
+          'Obtain pure neem oil from agricultural suppliers',
+          'Wear protective gloves during preparation',
+          'Measure 20 ml of pure neem oil per liter of water',
+          'Add 5 ml of mild dish soap',
+          'Mix thoroughly for 2-3 minutes',
+          'Shake spray tank vigorously before use',
+          'Apply during early morning (6-9am) or late evening',
+          'Target leaf tips where egg masses are laid',
+          'Repeat application every 5-7 days',
+        ],
+      },
+      {
+        name: 'Flubendiamide',
+        type: 'chemical',
+        description: 'Apply 0.3 ml/L at early larval stage',
+        effectiveness: '94%',
+        cost: 'High',
+        urgency: 'HIGH URGENCY',
+        mixingInstructions: 'Dilute 0.3 ml concentrate in 1 liter water',
+        applicationMethod: 'Spray on plants targeting young larvae',
+        dosage: '0.3 ml/L (150-200 ml/ha)',
+        precautions: ['Wear protective clothing', 'Highly toxic to silkworms', 'Avoid drift to nearby mulberry plantations'],
+        timing: 'Early larval stage (1-2 instar)',
+        harvesting: '28-day waiting period',
+        safetyWarning: 'Highly toxic to silkworms. Avoid drift to mulberry plantations.',
+        chemicalDetails: {
+          pesticidesRecommended: [
+            { name: 'Belt / Flubendiamide 39.35% SC', activeIngredient: 'Flubendiamide (diamide)', concentration: '39.35% suspension concentrate' },
+          ],
+          applicationSteps: STANDARD_APP_STEPS,
+          protectiveEquipment: STANDARD_PPE,
+          dilutionRatio: '0.3 ml concentrate per 1 liter water',
+          sprayTiming: 'Early morning (6-8am) when young larvae are actively feeding',
+          weatherConditions: 'Temperature 20-28°C, humidity 50-70%, wind <5 km/h, no rain for 8 hours',
+        },
+      },
     ],
     preventionTips: ['Use resistant varieties', 'Early planting', 'Balanced fertilization', 'Flooding to kill pupae'],
     imageUrl: 'https://images.unsplash.com/photo-1586003148644-c641c2879b39?w=400&h=300&fit=crop',
-    imageCredits: 'Photo by Agus Dietrich on Unsplash'
+    imageCredits: 'Photo by Agus Dietrich on Unsplash',
   },
+
+  // ── ID 6: Rice Gall Midge ─────────────────────────────────────────────────
   {
     id: '6',
     name: 'Rice Gall Midge',
@@ -273,26 +656,74 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     damageSymptoms: ['Silver shoots (onion leaves)', 'Hollow tube-like galls', 'Reduced productive tillers', 'Stunted plant growth'],
     cropAffected: ['Rice'],
     affectedCrops: ['Rice'],
-    favourableConditions: 'High humidity and waterlogged conditions. Shaded areas favor infestation.',
+    favourableConditions: 'High humidity and waterlogged conditions.',
     spreadMechanism: 'Adult flies emerge at night. Spread through wind currents.',
     emergencyThreshold: '10% silver shoots or 5% of tillers affected',
     symptomsStages: {
-      early: ['Slight swelling at leaf base', 'Leaves failing to unfurl', 'Minor silver sheen'],
+      early:    ['Slight swelling at leaf base', 'Leaves failing to unfurl', 'Minor silver sheen'],
       advanced: ['Distinct silver shoots', 'Hollow gall formation', 'Tiller remains vegetative'],
-      severe: ['50%+ tillers converted to galls', 'Severe yield reduction', 'Plant stunting complete']
+      severe:   ['50%+ tillers converted to galls', 'Severe yield reduction', 'Plant stunting complete'],
     },
     lifecycle: 'Egg (2-4 days) → Larva (12-20 days) → Pupa (5-7 days) → Adult (1-2 days)',
     naturalEnemies: ['Platygaster oryzae', 'Neanastatus grallarius', 'Tetrastichus spp.', 'Spiders'],
     resistanceRisk: 'low',
     treatments: [
-      { name: 'Plow Under Stubble', type: 'cultural', description: 'Deep plowing after harvest to destroy pupae', effectiveness: '55%', cost: 'Free', urgency: 'LOW URGENCY' },
-      { name: 'Resistant Varieties', type: 'cultural', description: 'Plant gall midge resistant varieties (e.g., Phalguna, Kakatiya)', effectiveness: '85%', cost: 'Low', urgency: 'LOW URGENCY' },
-      { name: 'Cartap Hydrochloride', type: 'chemical', description: 'Apply granules 15-20 kg/ha at tillering', effectiveness: '80%', cost: 'Moderate', urgency: 'HIGH URGENCY', safetyWarning: 'Toxic to aquatic life. Observe safety interval.' }
+      {
+        name: 'Resistant Varieties',
+        type: 'cultural',
+        description: 'Plant gall midge resistant varieties (e.g., Phalguna, Kakatiya)',
+        effectiveness: '85%',
+        cost: 'Low',
+        urgency: 'LOW URGENCY',
+        applicationMethod: 'Select and plant resistant rice varieties',
+        timing: 'At planting time',
+        harvesting: 'No restrictions',
+        culturalControlDetails: {
+          description: 'Using resistant rice varieties is the most effective and sustainable long-term control method.',
+          steps: [
+            'Identify gall midge resistant rice varieties suitable for your region',
+            'Obtain certified seeds from reliable agricultural suppliers',
+            'Plant resistant varieties in fields prone to gall midge infestation',
+            'Monitor fields regularly for any breakthrough infestations',
+            'Rotate with other resistant varieties to prevent resistance breakdown',
+          ],
+          frequency: 'Ongoing - use resistant varieties for all plantings',
+          equipment: ['Certified resistant seed varieties', 'Field monitoring tools'],
+          results: '85-95% reduction in gall midge damage',
+        },
+      },
+      {
+        name: 'Cartap Hydrochloride',
+        type: 'chemical',
+        description: 'Apply granules 15-20 kg/ha at tillering',
+        effectiveness: '80%',
+        cost: 'Moderate',
+        urgency: 'HIGH URGENCY',
+        mixingInstructions: 'Apply granules directly to soil or water',
+        applicationMethod: 'Broadcast granules in field',
+        dosage: '15-20 kg/ha',
+        precautions: ['Wear protective clothing', 'Avoid application near water bodies'],
+        timing: 'At tillering stage when infestation begins',
+        harvesting: '21-day waiting period',
+        safetyWarning: 'Toxic to aquatic life and bees. Observe 21-day pre-harvest interval.',
+        chemicalDetails: {
+          pesticidesRecommended: [
+            { name: 'Padan / Cartap Hydrochloride 4% G', activeIngredient: 'Cartap hydrochloride (nereistoxin analogue)', concentration: '4% granules' },
+          ],
+          applicationSteps: STANDARD_APP_STEPS,
+          protectiveEquipment: STANDARD_PPE,
+          dilutionRatio: 'No dilution - apply granules directly at 15-20 kg/ha',
+          sprayTiming: 'Apply at tillering stage (25-35 days after transplanting)',
+          weatherConditions: 'Calm weather (<5 km/h wind), moist soil, no heavy rain for 24 hours',
+        },
+      },
     ],
     preventionTips: ['Use resistant varieties', 'Synchronized planting', 'Drain fields periodically', 'Destroy alternate hosts'],
     imageUrl: 'https://images.unsplash.com/photo-1586003148644-c641c2879b39?w=400&h=300&fit=crop',
-    imageCredits: 'Photo by Agus Dietrich on Unsplash'
+    imageCredits: 'Photo by Agus Dietrich on Unsplash',
   },
+
+  // ── ID 7: Rice Stemfly ────────────────────────────────────────────────────
   {
     id: '7',
     name: 'Rice Stemfly',
@@ -304,26 +735,73 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     damageSymptoms: ['Yellowing central leaf', 'Dead hearts', 'White empty heads', 'Stem hollowing'],
     cropAffected: ['Rice'],
     affectedCrops: ['Rice', 'Wheat'],
-    favourableConditions: 'Cool temperatures with high humidity. Early planted crops at risk.',
-    spreadMechanism: 'Adult flies active during morning hours. Short distance flight.',
+    favourableConditions: 'Cool temperatures with high humidity.',
+    spreadMechanism: 'Adult flies active during morning hours.',
     emergencyThreshold: '10% dead hearts in early tillering',
     symptomsStages: {
-      early: ['Central leaf yellowing', 'Inner leaf easy to pull', 'Slight stem discoloration'],
+      early:    ['Central leaf yellowing', 'Inner leaf easy to pull', 'Slight stem discoloration'],
       advanced: ['Distinct dead heart', 'Foul smell from stem', 'White heads development'],
-      severe: ['Multiple dead hearts per hill', 'Severe tiller death', '30-40% yield loss']
+      severe:   ['Multiple dead hearts per hill', 'Severe tiller death', '30-40% yield loss'],
     },
     lifecycle: 'Egg (3-5 days) → Larva (8-12 days) → Pupa (6-8 days) → Adult (4-6 days)',
     naturalEnemies: ['Parasitic wasps', 'Ground beetles', 'Ants'],
     resistanceRisk: 'low',
     treatments: [
-      { name: 'Stubble Removal', type: 'cultural', description: 'Remove and destroy crop residues after harvest', effectiveness: '50%', cost: 'Free', urgency: 'LOW URGENCY' },
-      { name: 'Yellow Sticky Traps', type: 'cultural', description: 'Place traps at 20 per hectare', effectiveness: '55%', cost: 'Low', urgency: 'MEDIUM URGENCY' },
-      { name: 'Cypermethrin', type: 'chemical', description: 'Apply 0.5 ml/L when flies active', effectiveness: '85%', cost: 'Low', urgency: 'HIGH URGENCY', safetyWarning: 'Toxic to bees. Avoid spraying during flowering.' }
+      {
+        name: 'Yellow Sticky Traps',
+        type: 'cultural',
+        description: 'Place traps at 20 per hectare',
+        effectiveness: '55%',
+        cost: 'Low',
+        urgency: 'MEDIUM URGENCY',
+        applicationMethod: 'Hang traps at plant height throughout field',
+        timing: 'During adult fly period',
+        harvesting: 'No restrictions',
+        culturalControlDetails: {
+          description: 'Yellow sticky traps attract and capture adult flies, reducing egg laying.',
+          steps: [
+            'Purchase commercial yellow sticky traps',
+            'Install traps at plant canopy height',
+            'Space traps evenly at 20 per hectare',
+            'Check and replace traps when full',
+          ],
+          frequency: 'Weekly inspection and replacement as needed',
+          equipment: ['Yellow sticky traps', 'Stakes or wire for mounting'],
+          results: 'Reduces adult fly populations by 40-55%',
+        },
+      },
+      {
+        name: 'Cypermethrin',
+        type: 'chemical',
+        description: 'Apply 0.5 ml/L when flies active',
+        effectiveness: '85%',
+        cost: 'Low',
+        urgency: 'HIGH URGENCY',
+        mixingInstructions: 'Dilute 0.5 ml in 1 liter water',
+        applicationMethod: 'Foliar spray targeting adult flies',
+        dosage: '0.5 ml/L',
+        precautions: ['Wear protective clothing', 'Avoid spraying during flowering'],
+        timing: 'When adult flies are active',
+        harvesting: '14-day waiting period',
+        safetyWarning: 'Toxic to bees. Avoid spraying during flowering.',
+        chemicalDetails: {
+          pesticidesRecommended: [
+            { name: 'Cypermethrin 10% EC', activeIngredient: 'Cypermethrin (pyrethroid)', concentration: '10% emulsifiable concentrate' },
+          ],
+          applicationSteps: STANDARD_APP_STEPS,
+          protectiveEquipment: STANDARD_PPE,
+          dilutionRatio: '0.5 ml per liter water',
+          sprayTiming: 'Early morning when flies are active',
+          weatherConditions: 'Calm weather, temperature 20-30°C, no rain for 6 hours',
+        },
+      },
     ],
     preventionTips: ['Early planting to avoid peak population', 'Use balanced nitrogen', 'Destroy weed hosts', 'Crop rotation'],
     imageUrl: 'https://images.unsplash.com/photo-1586003148644-c641c2879b39?w=400&h=300&fit=crop',
-    imageCredits: 'Photo by Agus Dietrich on Unsplash'
+    imageCredits: 'Photo by Agus Dietrich on Unsplash',
   },
+
+  // ── ID 8: Brown Plant Hopper ──────────────────────────────────────────────
   {
     id: '8',
     name: 'Brown Plant Hopper',
@@ -335,27 +813,100 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     damageSymptoms: ['Yellowing leaves', 'Hopperburn (drying from base)', 'Stunted plants', 'Sooty mold from honeydew'],
     cropAffected: ['Rice'],
     affectedCrops: ['Rice'],
-    favourableConditions: 'High nitrogen, dense planting, continuous cropping, and warm humid weather.',
+    favourableConditions: 'High nitrogen, dense planting, continuous cropping, warm humid weather.',
     spreadMechanism: 'Macropterous (winged) forms migrate long distances. Spread through wind.',
     emergencyThreshold: '10 hoppers per hill in early stage, 5 per hill in reproductive stage',
     symptomsStages: {
-      early: ['Yellowing of lower leaves', 'Small hopper colonies at base', 'Sticky honeydew on leaves'],
+      early:    ['Yellowing of lower leaves', 'Small hopper colonies at base', 'Sticky honeydew on leaves'],
       advanced: ['Progressive leaf yellowing upward', 'Hopperburn patches', 'Sooty mold covering'],
-      severe: ['Complete hopperburn (field looks burned)', 'Collapsed rice plants', 'Total crop loss']
+      severe:   ['Complete hopperburn (field looks burned)', 'Collapsed rice plants', 'Total crop loss'],
     },
     lifecycle: 'Egg (6-9 days) → Nymph (15-20 days, 5 instars) → Adult (15-25 days). Complete cycle 25-35 days.',
     naturalEnemies: ['Spiders (Lycosa, Tetragnatha)', 'Ladybird beetles (Micraspis)', 'Crickets (Conocephalus)', 'Mirid bugs (Cyrtorhinus)'],
     resistanceRisk: 'high',
     treatments: [
-      { name: 'Drain Field', type: 'cultural', description: 'Drain field for 3-5 days to kill hoppers', effectiveness: '60%', cost: 'Free', urgency: 'MEDIUM URGENCY' },
-      { name: 'Light Traps', type: 'cultural', description: 'Install light traps to attract and kill adults', effectiveness: '50%', cost: 'Low', urgency: 'LOW URGENCY' },
-      { name: 'Metarhizium anisopliae', type: 'biological', description: 'Apply fungal biopesticide at 5g/L', effectiveness: '70%', cost: 'Moderate', urgency: 'MEDIUM URGENCY' },
-      { name: 'Buprofezin + Pymetrozine', type: 'chemical', description: 'Apply at threshold. Rotate to avoid resistance.', effectiveness: '92%', cost: 'Moderate', urgency: 'HIGH URGENCY', safetyWarning: 'Resistance reported. Use rotation. Highly toxic to hopper natural enemies.' }
+      {
+        name: 'Light Traps',
+        type: 'cultural',
+        description: 'Install light traps to attract and kill adults',
+        effectiveness: '50%',
+        cost: 'Low',
+        urgency: 'LOW URGENCY',
+        applicationMethod: 'Install UV light traps at field edges',
+        timing: 'Continuous during growing season',
+        harvesting: 'No restrictions',
+        culturalControlDetails: {
+          description: 'Light traps capture adult brown plant hoppers, reducing field populations.',
+          steps: [
+            'Install UV light traps at field perimeter',
+            'Operate traps nightly',
+            'Empty collection containers daily',
+            'Monitor trap catches to gauge population levels',
+          ],
+          frequency: 'Nightly operation throughout growing season',
+          equipment: ['UV light traps', 'Collection containers'],
+          results: 'Reduces adult BPH populations by 30-50%',
+        },
+      },
+      {
+        name: 'Metarhizium anisopliae',
+        type: 'biological',
+        description: 'Apply fungal biopesticide at 5g/L',
+        effectiveness: '70%',
+        cost: 'Moderate',
+        urgency: 'MEDIUM URGENCY',
+        applicationMethod: 'Spray on rice plant bases where hoppers congregate',
+        dosage: '5g/L',
+        precautions: ['Apply in high humidity conditions', 'Avoid UV exposure after application'],
+        timing: 'When hopper populations first appear',
+        harvesting: 'No restrictions',
+        biologicalControlDetails: {
+          organism: 'Metarhizium anisopliae - entomopathogenic fungus',
+          howToUse: 'Fungal spores infect hoppers on contact, killing them within days.',
+          releaseRate: '5g per liter of water',
+          conditions: 'Best applied at >80% humidity and 20-28°C',
+          effectiveness: '65-75% hopper mortality under optimal conditions',
+          steps: [
+            'Mix Metarhizium product in water at label rate',
+            'Apply in the evening to avoid UV degradation',
+            'Target plant bases where hoppers feed',
+            'Repeat every 7-10 days if needed',
+          ],
+        },
+      },
+      {
+        name: 'Buprofezin + Pymetrozine',
+        type: 'chemical',
+        description: 'Apply at threshold. Rotate to avoid resistance.',
+        effectiveness: '92%',
+        cost: 'Moderate',
+        urgency: 'HIGH URGENCY',
+        mixingInstructions: 'Follow label rates for each product',
+        applicationMethod: 'Spray targeting plant bases',
+        dosage: 'Per label recommendation',
+        precautions: ['Rotate mode of action to prevent resistance', 'Highly toxic to hopper natural enemies'],
+        timing: 'At economic threshold',
+        harvesting: '14-day waiting period',
+        safetyWarning: 'Resistance reported. Use rotation. Highly toxic to hopper natural enemies.',
+        chemicalDetails: {
+          pesticidesRecommended: [
+            { name: 'Applaud / Buprofezin 25% WP', activeIngredient: 'Buprofezin (insect growth regulator)', concentration: '25% wettable powder' },
+            { name: 'Chess / Pymetrozine 50% WG', activeIngredient: 'Pymetrozine (pyridine azomethine)', concentration: '50% water dispersible granules' },
+          ],
+          applicationSteps: STANDARD_APP_STEPS,
+          protectiveEquipment: STANDARD_PPE,
+          dilutionRatio: 'Follow label rates',
+          sprayTiming: 'Apply when BPH reaches economic threshold',
+          weatherConditions: 'Calm weather, temperature 20-30°C, no rain for 6 hours',
+        },
+      },
     ],
     preventionTips: ['Use resistant varieties', 'Avoid excessive nitrogen', 'Alternate wetting and drying', 'Conserve natural enemies (spiders, ladybirds)'],
     imageUrl: 'https://images.unsplash.com/photo-1586003148644-c641c2879b39?w=400&h=300&fit=crop',
-    imageCredits: 'Photo by Agus Dietrich on Unsplash'
+    imageCredits: 'Photo by Agus Dietrich on Unsplash',
   },
+
+  // ── ID 9: White Backed Plant Hopper ──────────────────────────────────────
   {
     id: '9',
     name: 'White Backed Plant Hopper',
@@ -371,21 +922,46 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     spreadMechanism: 'Long-distance migrant. Spread via wind currents and weather systems.',
     emergencyThreshold: '15 hoppers per hill in early stage',
     symptomsStages: {
-      early: ['Leaf tips yellowing', 'Hoppers on lower sheaths', 'Minor honey dew'],
+      early:    ['Leaf tips yellowing', 'Hoppers on lower sheaths', 'Minor honey dew'],
       advanced: ['Progressive yellowing and drying', 'Distinct hopper colonies', 'Sooty mold on leaves'],
-      severe: ['Complete leaf drying', 'Plant lodging', 'Grassy stunt virus transmission']
+      severe:   ['Complete leaf drying', 'Plant lodging', 'Grassy stunt virus transmission'],
     },
     lifecycle: 'Egg (5-7 days) → Nymph (12-18 days) → Adult (10-15 days)',
     naturalEnemies: ['Spiders', 'Mirid bugs', 'Ladybird beetles', 'Water striders'],
     resistanceRisk: 'medium',
     treatments: [
-      { name: 'Drain Field', type: 'cultural', description: 'Drain furrows for 3-5 days', effectiveness: '55%', cost: 'Free', urgency: 'MEDIUM URGENCY' },
-      { name: 'Pymetrozine', type: 'chemical', description: 'Apply 0.4 g/L when threshold reached', effectiveness: '90%', cost: 'Moderate', urgency: 'HIGH URGENCY', safetyWarning: 'Selective for hoppers. Safer for natural enemies.' }
+      {
+        name: 'Pymetrozine',
+        type: 'chemical',
+        description: 'Apply 0.4 g/L when threshold reached',
+        effectiveness: '90%',
+        cost: 'Moderate',
+        urgency: 'HIGH URGENCY',
+        mixingInstructions: 'Mix 0.4g per liter of water',
+        applicationMethod: 'Spray targeting lower plant stems',
+        dosage: '0.4 g/L',
+        precautions: ['Avoid application near water bodies', 'Rotate with other classes'],
+        timing: 'At economic threshold',
+        harvesting: '14-day waiting period',
+        safetyWarning: 'Selective for hoppers. Safer for natural enemies.',
+        chemicalDetails: {
+          pesticidesRecommended: [
+            { name: 'Chess / Pymetrozine 50% WG', activeIngredient: 'Pymetrozine', concentration: '50% water dispersible granules' },
+          ],
+          applicationSteps: STANDARD_APP_STEPS,
+          protectiveEquipment: STANDARD_PPE,
+          dilutionRatio: '0.4 g per liter water',
+          sprayTiming: 'Morning or evening application',
+          weatherConditions: 'Calm weather, temperature 20-30°C',
+        },
+      },
     ],
     preventionTips: ['Resistant varieties', 'Balanced fertilization', 'Alternate wetting and drying', 'Conserve predators'],
     imageUrl: 'https://images.unsplash.com/photo-1586003148644-c641c2879b39?w=400&h=300&fit=crop',
-    imageCredits: 'Photo by Agus Dietrich on Unsplash'
+    imageCredits: 'Photo by Agus Dietrich on Unsplash',
   },
+
+  // ── ID 10: Small Brown Plant Hopper ──────────────────────────────────────
   {
     id: '10',
     name: 'Small Brown Plant Hopper',
@@ -401,21 +977,46 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     spreadMechanism: 'Short-distance flight. Spread through wind and infested crops.',
     emergencyThreshold: '20 hoppers per hill',
     symptomsStages: {
-      early: ['Slight yellowing', 'Few hoppers at base', 'Minor stunting'],
+      early:    ['Slight yellowing', 'Few hoppers at base', 'Minor stunting'],
       advanced: ['Virus symptoms appear', 'Yellow stripes on leaves', 'Hopper colonies visible'],
-      severe: ['Severe plant stunting', 'Complete virus expression', 'Yield loss up to 40%']
+      severe:   ['Severe plant stunting', 'Complete virus expression', 'Yield loss up to 40%'],
     },
     lifecycle: 'Egg (5-10 days) → Nymph (12-16 days) → Adult (10-20 days)',
     naturalEnemies: ['Spiders', 'Ground beetles', 'Parasitic wasps'],
     resistanceRisk: 'medium',
     treatments: [
-      { name: 'Remove Weeds', type: 'cultural', description: 'Remove grass weeds that harbor hoppers', effectiveness: '50%', cost: 'Free', urgency: 'LOW URGENCY' },
-      { name: 'Imidacloprid', type: 'chemical', description: 'Apply seed treatment or foliar spray', effectiveness: '88%', cost: 'Low', urgency: 'HIGH URGENCY', safetyWarning: 'Toxic to bees and natural enemies.' }
+      {
+        name: 'Imidacloprid',
+        type: 'chemical',
+        description: 'Apply seed treatment or foliar spray',
+        effectiveness: '88%',
+        cost: 'Low',
+        urgency: 'HIGH URGENCY',
+        mixingInstructions: 'Mix 0.5-1 ml per liter water for foliar use',
+        applicationMethod: 'Seed treatment or foliar spray',
+        dosage: '0.5-1 ml/L',
+        precautions: ['Toxic to bees and natural enemies', 'Do not apply during flowering'],
+        timing: 'At planting (seed treatment) or at first sign of hoppers',
+        harvesting: '21-day waiting period',
+        safetyWarning: 'Toxic to bees and natural enemies.',
+        chemicalDetails: {
+          pesticidesRecommended: [
+            { name: 'Confidor / Imidacloprid 17.8% SL', activeIngredient: 'Imidacloprid (neonicotinoid)', concentration: '17.8% soluble liquid' },
+          ],
+          applicationSteps: STANDARD_APP_STEPS,
+          protectiveEquipment: STANDARD_PPE,
+          dilutionRatio: '0.5-1 ml per liter water',
+          sprayTiming: 'Early morning or late evening',
+          weatherConditions: 'Calm weather, temperature 20-30°C, no rain for 6 hours',
+        },
+      },
     ],
     preventionTips: ['Remove weed hosts', 'Use virus-free seeds', 'Control hoppers early', 'Crop rotation'],
     imageUrl: 'https://images.unsplash.com/photo-1586003148644-c641c2879b39?w=400&h=300&fit=crop',
-    imageCredits: 'Photo by Agus Dietrich on Unsplash'
+    imageCredits: 'Photo by Agus Dietrich on Unsplash',
   },
+
+  // ── ID 11: Rice Water Weevil ──────────────────────────────────────────────
   {
     id: '11',
     name: 'Rice Water Weevil',
@@ -431,22 +1032,64 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     spreadMechanism: 'Adult weevils walk and fly. Spread through irrigation water and wind.',
     emergencyThreshold: '1 weevil per stem or 50% leaf scarring',
     symptomsStages: {
-      early: ['Longitudinal leaf scars', 'Feeding marks in rows', 'Minor root damage'],
+      early:    ['Longitudinal leaf scars', 'Feeding marks in rows', 'Minor root damage'],
       advanced: ['Pruned roots', 'Stunted plant growth', 'Reduced tiller numbers'],
-      severe: ['Severe root loss', 'Plants easy to pull', 'Complete growth suppression']
+      severe:   ['Severe root loss', 'Plants easy to pull', 'Complete growth suppression'],
     },
     lifecycle: 'Egg (5-10 days inside leaf sheath) → Larva (20-30 days in roots) → Pupa (5-10 days) → Adult (several months)',
     naturalEnemies: ['Carabid beetles', 'Fish (in flooded rice)', 'Water birds', 'Parasitic nematodes'],
     resistanceRisk: 'low',
     treatments: [
-      { name: 'Drain Fields', type: 'cultural', description: 'Drain fields for 5-7 days to expose larvae', effectiveness: '60%', cost: 'Free', urgency: 'MEDIUM URGENCY' },
-      { name: 'Neem Cake', type: 'organic', description: 'Apply neem cake 200kg/ha at planting', effectiveness: '55%', cost: 'Moderate', urgency: 'LOW URGENCY' },
-      { name: 'Fipronil Granules', type: 'chemical', description: 'Apply at planting or early season', effectiveness: '85%', cost: 'Moderate', urgency: 'HIGH URGENCY', safetyWarning: 'Toxic to fish and aquatic invertebrates.' }
+      {
+        name: 'Neem Cake',
+        type: 'organic',
+        description: 'Apply neem cake 200kg/ha at planting',
+        effectiveness: '55%',
+        cost: 'Moderate',
+        urgency: 'LOW URGENCY',
+        applicationMethod: 'Broadcast in field and incorporate into soil',
+        dosage: '200 kg/ha',
+        precautions: ['Apply before transplanting', 'Incorporate well into soil'],
+        timing: 'At planting time',
+        harvesting: 'No restrictions',
+        detailedSteps: [
+          'Obtain neem cake from agricultural suppliers',
+          'Broadcast 200 kg per hectare evenly across the field',
+          'Incorporate into the top 10 cm of soil',
+          'Flood the field as normal for transplanting',
+        ],
+      },
+      {
+        name: 'Fipronil Granules',
+        type: 'chemical',
+        description: 'Apply at planting or early season',
+        effectiveness: '85%',
+        cost: 'Moderate',
+        urgency: 'HIGH URGENCY',
+        applicationMethod: 'Broadcast granules in flooded field',
+        dosage: '10 kg/ha',
+        precautions: ['Toxic to fish and aquatic invertebrates', 'Keep away from water bodies'],
+        timing: 'At planting or within 1 week of transplanting',
+        harvesting: '30-day waiting period',
+        safetyWarning: 'Toxic to fish and aquatic invertebrates.',
+        chemicalDetails: {
+          pesticidesRecommended: [
+            { name: 'Regent / Fipronil 0.3% GR', activeIngredient: 'Fipronil (phenylpyrazole)', concentration: '0.3% granules' },
+          ],
+          applicationSteps: STANDARD_APP_STEPS,
+          protectiveEquipment: STANDARD_PPE,
+          dilutionRatio: 'No dilution - apply granules directly at 10 kg/ha',
+          sprayTiming: 'Apply at transplanting',
+          weatherConditions: 'Calm weather, maintain flood water after application',
+        },
+      },
     ],
     preventionTips: ['Delay planting to avoid peak', 'Use tolerant varieties', 'Drain fields periodically', 'Crop rotation'],
     imageUrl: 'https://images.unsplash.com/photo-1586003148644-c641c2879b39?w=400&h=300&fit=crop',
-    imageCredits: 'Photo by Agus Dietrich on Unsplash'
+    imageCredits: 'Photo by Agus Dietrich on Unsplash',
   },
+
+  // ── ID 12: Rice Leafhopper ────────────────────────────────────────────────
   {
     id: '12',
     name: 'Rice Leafhopper',
@@ -462,22 +1105,65 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     spreadMechanism: 'Leafhoppers jump and fly short distances. Spread virus rapidly.',
     emergencyThreshold: '10 leafhoppers per hill in tungro endemic areas',
     symptomsStages: {
-      early: ['Leaf tip yellowing', 'Slight stunting', 'Leafhoppers on lower leaves'],
+      early:    ['Leaf tip yellowing', 'Slight stunting', 'Leafhoppers on lower leaves'],
       advanced: ['Progressive yellowing', 'Tungro symptom expression', 'Reduced tillering'],
-      severe: ['Severe plant stunting', 'Orange-yellow discoloration', 'Yield loss up to 80%']
+      severe:   ['Severe plant stunting', 'Orange-yellow discoloration', 'Yield loss up to 80%'],
     },
     lifecycle: 'Egg (5-8 days embedded in leaf tissue) → Nymph (12-15 days) → Adult (15-25 days)',
     naturalEnemies: ['Spiders', 'Mirid bugs (Cyrtorhinus lividipennis)', 'Gonatocerus wasps', 'Water striders'],
     resistanceRisk: 'medium',
     treatments: [
-      { name: 'Remove Infected Plants', type: 'cultural', description: 'Rogue and destroy tungro-infected plants', effectiveness: '50%', cost: 'Free', urgency: 'MEDIUM URGENCY' },
-      { name: 'Neem Oil', type: 'organic', description: 'Apply 2% neem oil weekly', effectiveness: '60%', cost: 'Low', urgency: 'MEDIUM URGENCY' },
-      { name: 'Pymetrozine', type: 'chemical', description: 'Apply 0.4 g/L at first appearance', effectiveness: '90%', cost: 'Moderate', urgency: 'HIGH URGENCY', safetyWarning: 'Effective against hoppers, safer for natural enemies.' }
+      {
+        name: 'Neem Oil',
+        type: 'organic',
+        description: 'Apply 2% neem oil weekly',
+        effectiveness: '60%',
+        cost: 'Low',
+        urgency: 'MEDIUM URGENCY',
+        mixingInstructions: 'Mix 20ml neem oil per liter with 5ml soap',
+        applicationMethod: 'Foliar spray targeting leafhoppers',
+        dosage: '2% solution',
+        precautions: ['Apply early morning or evening', 'Avoid sunlight hours'],
+        timing: 'Weekly during infestation',
+        harvesting: '7-day wait period',
+        detailedSteps: [
+          'Prepare 2% neem oil solution with soap emulsifier',
+          'Apply thoroughly to both leaf surfaces',
+          'Repeat weekly during leafhopper pressure',
+        ],
+      },
+      {
+        name: 'Pymetrozine',
+        type: 'chemical',
+        description: 'Apply 0.4 g/L at first appearance',
+        effectiveness: '90%',
+        cost: 'Moderate',
+        urgency: 'HIGH URGENCY',
+        mixingInstructions: 'Dissolve 0.4g per liter of water',
+        applicationMethod: 'Spray targeting plant stems and leaf bases',
+        dosage: '0.4 g/L',
+        precautions: ['Rotate with other chemical classes'],
+        timing: 'At first sign of leafhopper infestation',
+        harvesting: '14-day waiting period',
+        safetyWarning: 'Effective against hoppers, safer for natural enemies.',
+        chemicalDetails: {
+          pesticidesRecommended: [
+            { name: 'Chess / Pymetrozine 50% WG', activeIngredient: 'Pymetrozine', concentration: '50% water dispersible granules' },
+          ],
+          applicationSteps: STANDARD_APP_STEPS,
+          protectiveEquipment: STANDARD_PPE,
+          dilutionRatio: '0.4 g per liter water',
+          sprayTiming: 'Morning or evening application',
+          weatherConditions: 'Calm weather, temperature 20-30°C',
+        },
+      },
     ],
     preventionTips: ['Use tungro-resistant varieties', 'Synchronized planting', 'Avoid continuous rice cropping', 'Control weed hosts'],
     imageUrl: 'https://images.unsplash.com/photo-1586003148644-c641c2879b39?w=400&h=300&fit=crop',
-    imageCredits: 'Photo by Agus Dietrich on Unsplash'
+    imageCredits: 'Photo by Agus Dietrich on Unsplash',
   },
+
+  // ── ID 13: Grain Spreader Thrips ──────────────────────────────────────────
   {
     id: '13',
     name: 'Grain Spreader Thrips',
@@ -493,22 +1179,65 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     spreadMechanism: 'Adults fly short distances. Spread through wind and infested seedlings.',
     emergencyThreshold: '10 thrips per leaf or 50% leaf damage',
     symptomsStages: {
-      early: ['Small silvery patches', 'Fine black feces on leaves', 'Slight leaf curling'],
+      early:    ['Small silvery patches', 'Fine black feces on leaves', 'Slight leaf curling'],
       advanced: ['Extensive silvering', 'Dried leaf tips', 'Leaves folding upward'],
-      severe: ['Complete leaf drying', 'Severely stunted plants', 'Empty or partially filled grains']
+      severe:   ['Complete leaf drying', 'Severely stunted plants', 'Empty or partially filled grains'],
     },
     lifecycle: 'Egg (4-7 days inside leaf tissue) → Nymph (8-10 days, 2 instars) → Prepupa (1 day) → Pupa (2-3 days) → Adult (10-15 days)',
     naturalEnemies: ['Predatory thrips', 'Orius bugs', 'Lacewings', 'Predatory mites (Amblyseius)'],
     resistanceRisk: 'medium',
     treatments: [
-      { name: 'Water Management', type: 'cultural', description: 'Flood fields to suppress thrips populations', effectiveness: '50%', cost: 'Free', urgency: 'LOW URGENCY' },
-      { name: 'Spinosad', type: 'organic', description: 'Apply 0.5 ml/L for effective control', effectiveness: '80%', cost: 'Moderate', urgency: 'MEDIUM URGENCY' },
-      { name: 'Fipronil', type: 'chemical', description: 'Apply when thrips appear', effectiveness: '88%', cost: 'Moderate', urgency: 'HIGH URGENCY', safetyWarning: 'Toxic to bees and aquatic life.' }
+      {
+        name: 'Spinosad',
+        type: 'organic',
+        description: 'Apply 0.5 ml/L for effective control',
+        effectiveness: '80%',
+        cost: 'Moderate',
+        urgency: 'MEDIUM URGENCY',
+        mixingInstructions: 'Mix 0.5 ml spinosad per liter of water',
+        applicationMethod: 'Foliar spray targeting thrips feeding sites',
+        dosage: '0.5 ml/L',
+        precautions: ['Avoid application during flowering', 'Rotate with other products'],
+        timing: 'Early morning when thrips are feeding',
+        harvesting: '7-day wait period',
+        detailedSteps: [
+          'Mix spinosad at label rate',
+          'Spray thoroughly on leaves including undersides',
+          'Repeat every 7-10 days',
+        ],
+      },
+      {
+        name: 'Fipronil',
+        type: 'chemical',
+        description: 'Apply when thrips appear',
+        effectiveness: '88%',
+        cost: 'Moderate',
+        urgency: 'HIGH URGENCY',
+        mixingInstructions: 'Mix at label recommended rate',
+        applicationMethod: 'Foliar spray',
+        dosage: 'Per label recommendation',
+        precautions: ['Toxic to bees and aquatic life', 'Do not apply near water bodies'],
+        timing: 'At first sign of thrips damage',
+        harvesting: '21-day waiting period',
+        safetyWarning: 'Toxic to bees and aquatic life.',
+        chemicalDetails: {
+          pesticidesRecommended: [
+            { name: 'Regent / Fipronil 5% SC', activeIngredient: 'Fipronil (phenylpyrazole)', concentration: '5% suspension concentrate' },
+          ],
+          applicationSteps: STANDARD_APP_STEPS,
+          protectiveEquipment: STANDARD_PPE,
+          dilutionRatio: 'Per label recommendation',
+          sprayTiming: 'Early morning',
+          weatherConditions: 'Calm weather, low humidity favors thrips - treat promptly',
+        },
+      },
     ],
     preventionTips: ['Avoid water stress', 'Use healthy seedlings', 'Remove grass weeds', 'Early detection with sticky traps'],
     imageUrl: 'https://images.unsplash.com/photo-1586003148644-c641c2879b39?w=400&h=300&fit=crop',
-    imageCredits: 'Photo by Agus Dietrich on Unsplash'
+    imageCredits: 'Photo by Agus Dietrich on Unsplash',
   },
+
+  // ── ID 14: Rice Shell Pest ────────────────────────────────────────────────
   {
     id: '14',
     name: 'Rice Shell Pest',
@@ -524,20 +1253,44 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     spreadMechanism: 'Adult weevils walk and climb plants. Limited flight.',
     emergencyThreshold: '5 weevils per hill causing economic damage (rare)',
     symptomsStages: {
-      early: ['Small feeding scars', 'Surface scraping visible', 'Minor leaf damage'],
+      early:    ['Small feeding scars', 'Surface scraping visible', 'Minor leaf damage'],
       advanced: ['More extensive scarring', 'Visible adult weevils', 'Damage usually not economic'],
-      severe: ['Rarely reaches severe levels', 'Can be ignored in most cases', 'Natural controls sufficient']
+      severe:   ['Rarely reaches severe levels', 'Can be ignored in most cases', 'Natural controls sufficient'],
     },
     lifecycle: 'Egg (5-7 days) → Larva (15-20 days) → Pupa (5-7 days) → Adult (30-60 days)',
     naturalEnemies: ['Ground beetles', 'Parasitic wasps', 'Fungal pathogens'],
     resistanceRisk: 'low',
     treatments: [
-      { name: 'Hand Removal', type: 'cultural', description: 'Collect weevils when seen', effectiveness: '40%', cost: 'Free', urgency: 'LOW URGENCY' }
+      {
+        name: 'Monitoring Only',
+        type: 'cultural',
+        description: 'Usually does not require treatment; monitor and allow natural controls to work',
+        effectiveness: '80%',
+        cost: 'Free',
+        urgency: 'LOW URGENCY',
+        applicationMethod: 'Regular field scouting',
+        timing: 'Throughout growing season',
+        harvesting: 'No restrictions',
+        culturalControlDetails: {
+          description: 'Rice shell pest rarely causes economic damage. Natural enemies usually provide adequate control.',
+          steps: [
+            'Scout fields weekly for adult weevils',
+            'Count weevils per hill to monitor population',
+            'Allow natural enemies to suppress population',
+            'Only intervene if threshold (5 per hill) is consistently exceeded',
+          ],
+          frequency: 'Weekly scouting',
+          equipment: ['Field notebook', 'Hand lens for identification'],
+          results: 'Natural enemies typically maintain populations below economic threshold',
+        },
+      },
     ],
     preventionTips: ['Natural enemies usually control', 'No specific control needed', 'Monitor fields regularly'],
     imageUrl: 'https://images.unsplash.com/photo-1586003148644-c641c2879b39?w=400&h=300&fit=crop',
-    imageCredits: 'Photo by Agus Dietrich on Unsplash'
+    imageCredits: 'Photo by Agus Dietrich on Unsplash',
   },
+
+  // ── ID 15: Grub ───────────────────────────────────────────────────────────
   {
     id: '15',
     name: 'Grub',
@@ -553,22 +1306,73 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     spreadMechanism: 'Adults (beetles) fly and lay eggs in soil. Grubs move through soil.',
     emergencyThreshold: '2-3 grubs per square meter in sandy soils',
     symptomsStages: {
-      early: ['Slight plant yellowing', 'Minor root scarring', 'Occasional wilting'],
+      early:    ['Slight plant yellowing', 'Minor root scarring', 'Occasional wilting'],
       advanced: ['Progressive plant death', 'Complete root destruction', 'Dead patches expanding'],
-      severe: ['Large dead patches', 'Plant easy to pull with no roots', 'Complete crop loss in patches']
+      severe:   ['Large dead patches', 'Plant easy to pull with no roots', 'Complete crop loss in patches'],
     },
     lifecycle: 'Egg (2-3 weeks) → Larva (8-10 months, 3 instars) → Pupa (2-4 weeks) → Adult (1-2 months). Complete cycle 1 year.',
     naturalEnemies: ['Parasitic wasps (Scolia)', 'Nematodes (Heterorhabditis)', 'Fungi (Metarhizium)', 'Birds', 'Ants'],
     resistanceRisk: 'low',
     treatments: [
-      { name: 'Deep Plowing', type: 'cultural', description: 'Deep plow to expose grubs to predators and sun', effectiveness: '55%', cost: 'Free', urgency: 'LOW URGENCY' },
-      { name: 'Metarhizium', type: 'biological', description: 'Apply fungal biopesticide to soil', effectiveness: '65%', cost: 'Moderate', urgency: 'MEDIUM URGENCY' },
-      { name: 'Chlorpyrifos', type: 'chemical', description: 'Soil application at planting or after detection', effectiveness: '85%', cost: 'Moderate', urgency: 'HIGH URGENCY', safetyWarning: 'Highly toxic, restricted use. Soil residual concerns.' }
+      {
+        name: 'Metarhizium',
+        type: 'biological',
+        description: 'Apply fungal biopesticide to soil',
+        effectiveness: '65%',
+        cost: 'Moderate',
+        urgency: 'MEDIUM URGENCY',
+        applicationMethod: 'Soil incorporation before planting',
+        dosage: '2-5 kg/ha',
+        precautions: ['Keep moist after application', 'Avoid chemical fungicides for 2 weeks after application'],
+        timing: 'Before planting or at first sign of grub damage',
+        harvesting: 'No restrictions',
+        biologicalControlDetails: {
+          organism: 'Metarhizium anisopliae - entomopathogenic fungus',
+          howToUse: 'Fungal spores infect grubs in soil, killing them over 1-3 weeks.',
+          releaseRate: '2-5 kg per hectare',
+          conditions: 'Moist soil at 20-28°C for best efficacy',
+          effectiveness: '60-70% grub mortality under optimal conditions',
+          steps: [
+            'Obtain Metarhizium product from biological suppliers',
+            'Mix with soil or sand carrier',
+            'Incorporate into top 15 cm of soil before planting',
+            'Maintain soil moisture for fungal establishment',
+            'Avoid broad-spectrum fungicides for 2 weeks',
+          ],
+        },
+      },
+      {
+        name: 'Chlorpyrifos',
+        type: 'chemical',
+        description: 'Soil application at planting or after detection',
+        effectiveness: '85%',
+        cost: 'Moderate',
+        urgency: 'HIGH URGENCY',
+        mixingInstructions: 'Mix per label rate for soil application',
+        applicationMethod: 'Soil drench or granule incorporation',
+        dosage: 'Per label recommendation',
+        precautions: ['Highly toxic, restricted use', 'Soil residual concerns', 'Keep away from water'],
+        timing: 'At planting or when grubs detected',
+        harvesting: '30-day waiting period',
+        safetyWarning: 'Highly toxic, restricted use. Soil residual concerns.',
+        chemicalDetails: {
+          pesticidesRecommended: [
+            { name: 'Lorsban / Chlorpyrifos 40% EC', activeIngredient: 'Chlorpyrifos (organophosphate)', concentration: '40% emulsifiable concentrate' },
+          ],
+          applicationSteps: STANDARD_APP_STEPS,
+          protectiveEquipment: STANDARD_PPE,
+          dilutionRatio: 'Per label for soil application',
+          sprayTiming: 'Apply at planting or upon detection',
+          weatherConditions: 'Calm weather, no rain expected to prevent runoff',
+        },
+      },
     ],
     preventionTips: ['Deep plowing', 'Crop rotation with non-host crops', 'Remove crop residues', 'Use resistant varieties if available'],
     imageUrl: 'https://images.unsplash.com/photo-1586003148644-c641c2879b39?w=400&h=300&fit=crop',
-    imageCredits: 'Photo by Agus Dietrich on Unsplash'
+    imageCredits: 'Photo by Agus Dietrich on Unsplash',
   },
+
+  // ── ID 16: Mole Cricket ───────────────────────────────────────────────────
   {
     id: '16',
     name: 'Mole Cricket',
@@ -581,25 +1385,75 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     cropAffected: ['Rice', 'Maize', 'Vegetables', 'Tobacco'],
     affectedCrops: ['Rice', 'Maize', 'Vegetables', 'Tobacco', 'Seedbeds of all crops'],
     favourableConditions: 'Moist soil, high organic matter. Recently plowed fields.',
-    spreadMechanism: 'Crickets walk through soil and fly at night. Spread via irrigation and soil movement.',
+    spreadMechanism: 'Crickets walk through soil and fly at night.',
     emergencyThreshold: '5% seedling loss or active tunnels visible',
     symptomsStages: {
-      early: ['Small emergence holes', 'Minor seedling loss', 'Surface tunnels visible'],
+      early:    ['Small emergence holes', 'Minor seedling loss', 'Surface tunnels visible'],
       advanced: ['Row gaps from seedling loss', 'Severed plants at soil level', 'Extensive tunnel network'],
-      severe: ['40-50% seedling loss', 'Complete stand loss in patches', 'Replanting needed']
+      severe:   ['40-50% seedling loss', 'Complete stand loss in patches', 'Replanting needed'],
     },
     lifecycle: 'Egg (2-3 weeks in soil chamber) → Nymph (2-3 months, 6-8 instars) → Adult (2-3 months)',
     naturalEnemies: ['Parasitic wasps (Larra)', 'Nematodes (Steinernema)', 'Birds', 'Toads', 'Ants'],
     resistanceRisk: 'low',
     treatments: [
-      { name: 'Flooding', type: 'cultural', description: 'Flood fields to force crickets to surface', effectiveness: '45%', cost: 'Free', urgency: 'LOW URGENCY' },
-      { name: 'Bran Bait', type: 'cultural', description: 'Mix bran with molasses and carbaryl as bait', effectiveness: '65%', cost: 'Low', urgency: 'MEDIUM URGENCY' },
-      { name: 'Fipronil', type: 'chemical', description: 'Seed treatment or soil application', effectiveness: '88%', cost: 'Moderate', urgency: 'HIGH URGENCY', safetyWarning: 'Toxic to beneficial soil insects.' }
+      {
+        name: 'Bran Bait',
+        type: 'cultural',
+        description: 'Mix bran with molasses and carbaryl as bait',
+        effectiveness: '65%',
+        cost: 'Low',
+        urgency: 'MEDIUM URGENCY',
+        applicationMethod: 'Distribute bait on soil surface in the evening',
+        dosage: '20-30 kg bait/ha',
+        precautions: ['Keep away from children and animals', 'Apply in evening when crickets are active'],
+        timing: 'Evening application when crickets emerge',
+        harvesting: '7-day wait period',
+        culturalControlDetails: {
+          description: 'Bran bait attracts mole crickets which ingest poison and die.',
+          steps: [
+            'Mix wheat bran, molasses, and approved insecticide bait',
+            'Moisten bait to palatable consistency',
+            'Scatter bait on soil surface in the evening',
+            'Apply particularly around seedbeds and crop rows',
+            'Repeat every 5-7 days if crickets persist',
+          ],
+          frequency: 'Every 5-7 days during peak cricket activity',
+          equipment: ['Bran', 'Molasses', 'Approved bait insecticide', 'Mixing container'],
+          results: 'Reduces mole cricket populations by 50-65%',
+        },
+      },
+      {
+        name: 'Fipronil',
+        type: 'chemical',
+        description: 'Seed treatment or soil application',
+        effectiveness: '88%',
+        cost: 'Moderate',
+        urgency: 'HIGH URGENCY',
+        mixingInstructions: 'Per label for seed treatment or soil application',
+        applicationMethod: 'Seed treatment or soil incorporation',
+        dosage: 'Per label recommendation',
+        precautions: ['Toxic to beneficial soil insects', 'Wear full PPE'],
+        timing: 'At planting (seed treatment) or after emergence (soil drench)',
+        harvesting: '21-day waiting period',
+        safetyWarning: 'Toxic to beneficial soil insects.',
+        chemicalDetails: {
+          pesticidesRecommended: [
+            { name: 'Regent / Fipronil 5% SC', activeIngredient: 'Fipronil (phenylpyrazole)', concentration: '5% suspension concentrate' },
+          ],
+          applicationSteps: STANDARD_APP_STEPS,
+          protectiveEquipment: STANDARD_PPE,
+          dilutionRatio: 'Per label recommendation',
+          sprayTiming: 'Apply at planting or upon mole cricket detection',
+          weatherConditions: 'Calm weather, moist soil for best uptake',
+        },
+      },
     ],
     preventionTips: ['Flood fields before planting', 'Deep plowing to destroy tunnels', 'Remove crop residues', 'Monitor soil after rains'],
     imageUrl: 'https://images.unsplash.com/photo-1586003148644-c641c2879b39?w=400&h=300&fit=crop',
-    imageCredits: 'Photo by Agus Dietrich on Unsplash'
+    imageCredits: 'Photo by Agus Dietrich on Unsplash',
   },
+
+  // ── ID 17: Wireworm ───────────────────────────────────────────────────────
   {
     id: '17',
     name: 'Wireworm',
@@ -615,23 +1469,92 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     spreadMechanism: 'Adults (click beetles) fly and lay eggs. Wireworms move through soil.',
     emergencyThreshold: '5 wireworms per square meter',
     symptomsStages: {
-      early: ['Seed damage', 'Poor germination', 'Occasional seedling death'],
+      early:    ['Seed damage', 'Poor germination', 'Occasional seedling death'],
       advanced: ['Deficient stand', 'Multiple dead plants', 'Tunnels in roots visible'],
-      severe: ['Extensive stand loss', 'Replanting required', 'Complete loss in areas']
+      severe:   ['Extensive stand loss', 'Replanting required', 'Complete loss in areas'],
     },
     lifecycle: 'Egg (3-4 weeks) → Larva (2-5 years, up to 15 instars) → Pupa (2-3 weeks) → Adult (several months)',
     naturalEnemies: ['Ground beetles', 'Rove beetles', 'Parasitic fungi', 'Nematodes', 'Birds'],
     resistanceRisk: 'low',
     treatments: [
-      { name: 'Crop Rotation', type: 'cultural', description: 'Rotate with non-host crops like soybeans', effectiveness: '60%', cost: 'Free', urgency: 'LOW URGENCY' },
-      { name: 'Tillage', type: 'cultural', description: 'Intensive tillage to expose wireworms', effectiveness: '50%', cost: 'Free', urgency: 'LOW URGENCY' },
-      { name: 'Neem Cake', type: 'organic', description: 'Apply 200kg/ha before planting', effectiveness: '55%', cost: 'Moderate', urgency: 'MEDIUM URGENCY' },
-      { name: 'Imidacloprid Seed Treatment', type: 'chemical', description: 'Treat seeds before planting', effectiveness: '85%', cost: 'Low', urgency: 'HIGH URGENCY', safetyWarning: 'Protect from birds and wildlife.' }
+      {
+        name: 'Tillage',
+        type: 'cultural',
+        description: 'Intensive tillage to expose wireworms',
+        effectiveness: '50%',
+        cost: 'Free',
+        urgency: 'LOW URGENCY',
+        applicationMethod: 'Deep tillage before planting',
+        timing: 'Before planting season',
+        harvesting: 'No restrictions',
+        culturalControlDetails: {
+          description: 'Deep tillage exposes wireworms to predators, sunlight, and desiccation.',
+          steps: [
+            'Plow to 20-25 cm depth in autumn or spring',
+            'Follow with secondary tillage to break up soil clods',
+            'Allow birds to feed on exposed wireworms',
+            'Repeat as needed before planting',
+          ],
+          frequency: 'Once or twice before planting season',
+          equipment: ['Plow', 'Disk harrow', 'Rototiller'],
+          results: 'Reduces wireworm populations by 30-50%',
+        },
+      },
+      {
+        name: 'Neem Cake',
+        type: 'organic',
+        description: 'Apply 200kg/ha before planting',
+        effectiveness: '55%',
+        cost: 'Moderate',
+        urgency: 'MEDIUM URGENCY',
+        applicationMethod: 'Broadcast and incorporate into soil',
+        dosage: '200 kg/ha',
+        precautions: ['Incorporate thoroughly into soil'],
+        timing: '2-3 weeks before planting',
+        harvesting: 'No restrictions',
+        detailedSteps: [
+          'Broadcast neem cake evenly at 200 kg/ha',
+          'Incorporate into top 15 cm of soil',
+          'Allow 2-3 weeks before planting for biological activity',
+        ],
+      },
+      {
+        name: 'Imidacloprid Seed Treatment',
+        type: 'chemical',
+        description: 'Treat seeds before planting',
+        effectiveness: '85%',
+        cost: 'Low',
+        urgency: 'HIGH URGENCY',
+        mixingInstructions: 'Apply per label rate for seed treatment',
+        applicationMethod: 'Seed treatment before planting',
+        dosage: 'Per label recommendation',
+        precautions: ['Protect from birds and wildlife', 'Wear gloves when handling treated seed'],
+        timing: 'Before planting',
+        harvesting: 'Pre-harvest interval per crop label',
+        safetyWarning: 'Protect from birds and wildlife.',
+        chemicalDetails: {
+          pesticidesRecommended: [
+            { name: 'Gaucho / Imidacloprid 60% FS', activeIngredient: 'Imidacloprid (neonicotinoid)', concentration: '60% flowable concentrate for seed treatment' },
+          ],
+          applicationSteps: [
+            'Measure seed treatment rate per kg of seed',
+            'Apply to dry seed and mix thoroughly',
+            'Allow to dry before planting',
+            'Plant treated seed promptly',
+          ],
+          protectiveEquipment: STANDARD_PPE,
+          dilutionRatio: 'Per label for seed treatment',
+          sprayTiming: 'Apply to seed before planting',
+          weatherConditions: 'Dry conditions for seed treatment application',
+        },
+      },
     ],
     preventionTips: ['Rotate with legumes', 'Avoid fields with grass history', 'Use seed treatments', 'Early planting into warm soil'],
     imageUrl: 'https://images.unsplash.com/photo-1586003148644-c641c2879b39?w=400&h=300&fit=crop',
-    imageCredits: 'Photo by Agus Dietrich on Unsplash'
+    imageCredits: 'Photo by Agus Dietrich on Unsplash',
   },
+
+  // ── ID 18: White Margined Moth ────────────────────────────────────────────
   {
     id: '18',
     name: 'White Margined Moth',
@@ -647,22 +1570,73 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     spreadMechanism: 'Moths migrate long distances. Larvae march in bands.',
     emergencyThreshold: '3-4 larvae per square meter',
     symptomsStages: {
-      early: ['Leaf skeletonization', 'Small larvae on leaves', 'Minor leaf damage'],
+      early:    ['Leaf skeletonization', 'Small larvae on leaves', 'Minor leaf damage'],
       advanced: ['Large irregular holes', 'Multiple larvae feeding', '50% leaf loss'],
-      severe: ['Complete defoliation', 'Crops completely stripped', 'Emergency action needed']
+      severe:   ['Complete defoliation', 'Crops completely stripped', 'Emergency action needed'],
     },
     lifecycle: 'Egg (3-5 days) → Larva (14-21 days, 6 instars) → Pupa (10-14 days in soil) → Adult (7-10 days)',
     naturalEnemies: ['Parasitic wasps (Cotesia, Telenomus)', 'Flies (Tachinidae)', 'Ground beetles', 'Birds'],
     resistanceRisk: 'medium',
     treatments: [
-      { name: 'Trench Barriers', type: 'cultural', description: 'Dig trenches to stop marching larvae', effectiveness: '60%', cost: 'Low', urgency: 'MEDIUM URGENCY' },
-      { name: 'Bt Spray', type: 'biological', description: 'Spray when larvae small', effectiveness: '75%', cost: 'Low', urgency: 'MEDIUM URGENCY' },
-      { name: 'Lambda-cyhalothrin', type: 'chemical', description: 'Emergency spray at threshold', effectiveness: '92%', cost: 'Low', urgency: 'HIGH URGENCY', safetyWarning: 'Toxic to bees and aquatic life.' }
+      {
+        name: 'Bt Spray',
+        type: 'biological',
+        description: 'Spray when larvae small',
+        effectiveness: '75%',
+        cost: 'Low',
+        urgency: 'MEDIUM URGENCY',
+        applicationMethod: 'Foliar spray targeting small larvae',
+        dosage: '1 kg/ha',
+        precautions: ['Apply to young larvae only', 'Avoid broad-spectrum insecticides'],
+        timing: 'Early larval stages (1-3 instar)',
+        harvesting: 'No restrictions',
+        biologicalControlDetails: {
+          organism: 'Bacillus thuringiensis (Bt) kurstaki strain',
+          howToUse: 'Bt produces toxins lethal to armyworm larvae when ingested.',
+          releaseRate: '1 kg Bt formulation per hectare',
+          conditions: 'Apply when larvae are small. Best at 20-30°C.',
+          effectiveness: '70-80% control of young larvae',
+          steps: [
+            'Monitor fields for small larvae',
+            'Mix Bt at label rate in water',
+            'Apply as foliar spray covering plant surfaces',
+            'Repeat every 5-7 days if needed',
+            'Do not apply in hot midday sun',
+          ],
+        },
+      },
+      {
+        name: 'Lambda-cyhalothrin',
+        type: 'chemical',
+        description: 'Emergency spray at threshold',
+        effectiveness: '92%',
+        cost: 'Low',
+        urgency: 'HIGH URGENCY',
+        mixingInstructions: 'Mix 25-50 ml/ha in 200-400 liters water',
+        applicationMethod: 'Foliar spray targeting larvae',
+        dosage: '25-50 ml/ha',
+        precautions: ['Toxic to bees and aquatic life', 'Avoid water bodies'],
+        timing: 'When larvae reach damaging levels',
+        harvesting: '7-day waiting period',
+        safetyWarning: 'Toxic to bees and aquatic life.',
+        chemicalDetails: {
+          pesticidesRecommended: [
+            { name: 'Karate / Lambda-cyhalothrin 5% EC', activeIngredient: 'Lambda-cyhalothrin (pyrethroid)', concentration: '5% emulsifiable concentrate' },
+          ],
+          applicationSteps: STANDARD_APP_STEPS,
+          protectiveEquipment: STANDARD_PPE,
+          dilutionRatio: '25-50 ml in 200-400 liters water per hectare',
+          sprayTiming: 'Early morning or late evening',
+          weatherConditions: 'Calm weather, temperature 20-30°C, no rain for 6 hours',
+        },
+      },
     ],
     preventionTips: ['Early warning systems', 'Destroy grassy weeds', 'Conserve natural enemies', 'Synchronized planting'],
     imageUrl: 'https://images.unsplash.com/photo-1586003148644-c641c2879b39?w=400&h=300&fit=crop',
-    imageCredits: 'Photo by Agus Dietrich on Unsplash'
+    imageCredits: 'Photo by Agus Dietrich on Unsplash',
   },
+
+  // ── ID 19: Black Cutworm ──────────────────────────────────────────────────
   {
     id: '19',
     name: 'Black Cutworm',
@@ -678,22 +1652,71 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     spreadMechanism: 'Adult moths fly long distances. Larvae in top few cm of soil.',
     emergencyThreshold: '3-5% cut plants',
     symptomsStages: {
-      early: ['Occasional cut plant', 'Small holes in leaves', 'Minor damage'],
+      early:    ['Occasional cut plant', 'Small holes in leaves', 'Minor damage'],
       advanced: ['Progressive stand loss', 'Row gaps appearing', 'Cutworms found near bases'],
-      severe: ['Replanting required', 'Large bare patches', 'Complete stand loss']
+      severe:   ['Replanting required', 'Large bare patches', 'Complete stand loss'],
     },
     lifecycle: 'Egg (3-7 days) → Larva (20-30 days, 6-7 instars) → Pupa (12-15 days in soil) → Adult (10-14 days)',
     naturalEnemies: ['Parasitic wasps (Cotesia, Meteorus)', 'Ground beetles', 'Rove beetles', 'Nematodes', 'Birds'],
     resistanceRisk: 'high',
     treatments: [
-      { name: 'Weed Control', type: 'cultural', description: 'Keep fields weed-free before planting', effectiveness: '55%', cost: 'Free', urgency: 'LOW URGENCY' },
-      { name: 'Bran Bait', type: 'cultural', description: 'Poison bait applied early evening', effectiveness: '65%', cost: 'Low', urgency: 'MEDIUM URGENCY' },
-      { name: 'Chlorpyrifos', type: 'chemical', description: 'Evening application at base of plants', effectiveness: '88%', cost: 'Moderate', urgency: 'HIGH URGENCY', safetyWarning: 'Highly toxic, restricted use.' }
+      {
+        name: 'Bran Bait',
+        type: 'cultural',
+        description: 'Poison bait applied early evening',
+        effectiveness: '65%',
+        cost: 'Low',
+        urgency: 'MEDIUM URGENCY',
+        applicationMethod: 'Scatter bait on soil surface at dusk',
+        dosage: '20-30 kg/ha',
+        precautions: ['Keep away from children and animals', 'Apply only in evening'],
+        timing: 'Evening when cutworms are active',
+        harvesting: '7-day wait period',
+        culturalControlDetails: {
+          description: 'Bran bait attracts cutworms which ingest poison and die.',
+          steps: [
+            'Mix wheat bran with approved bait insecticide and molasses',
+            'Distribute bait on soil surface in the evening',
+            'Apply around plant bases and along crop rows',
+            'Repeat every 5-7 days if cutworms persist',
+          ],
+          frequency: 'Every 5-7 days during peak cutworm activity',
+          equipment: ['Wheat bran', 'Molasses', 'Approved bait insecticide'],
+          results: 'Reduces cutworm damage by 50-65%',
+        },
+      },
+      {
+        name: 'Chlorpyrifos',
+        type: 'chemical',
+        description: 'Evening application at base of plants',
+        effectiveness: '88%',
+        cost: 'Moderate',
+        urgency: 'HIGH URGENCY',
+        mixingInstructions: 'Mix at label rate for soil surface application',
+        applicationMethod: 'Soil surface spray at plant bases in the evening',
+        dosage: 'Per label recommendation',
+        precautions: ['Highly toxic, restricted use', 'Apply in evening when cutworms active'],
+        timing: 'Evening application',
+        harvesting: '21-day waiting period',
+        safetyWarning: 'Highly toxic, restricted use.',
+        chemicalDetails: {
+          pesticidesRecommended: [
+            { name: 'Lorsban / Chlorpyrifos 40% EC', activeIngredient: 'Chlorpyrifos (organophosphate)', concentration: '40% emulsifiable concentrate' },
+          ],
+          applicationSteps: STANDARD_APP_STEPS,
+          protectiveEquipment: STANDARD_PPE,
+          dilutionRatio: 'Per label recommendation',
+          sprayTiming: 'Evening when cutworms emerge from soil',
+          weatherConditions: 'Calm, dry weather for surface application',
+        },
+      },
     ],
     preventionTips: ['Weed control before planting', 'Crop rotation', 'Tillage to destroy larvae', 'Delay planting in infested fields'],
     imageUrl: 'https://images.unsplash.com/photo-1586003148644-c641c2879b39?w=400&h=300&fit=crop',
-    imageCredits: 'Photo by Agus Dietrich on Unsplash'
+    imageCredits: 'Photo by Agus Dietrich on Unsplash',
   },
+
+  // ── ID 20: Large Cutworm ──────────────────────────────────────────────────
   {
     id: '20',
     name: 'Large Cutworm',
@@ -709,22 +1732,72 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     spreadMechanism: 'Moths fly at night. Larvae remain in soil during day.',
     emergencyThreshold: '5% cut plants',
     symptomsStages: {
-      early: ['Occasional plant cut', 'Larvae hidden under debris', 'Minor damage visible'],
+      early:    ['Occasional plant cut', 'Larvae hidden under debris', 'Minor damage visible'],
       advanced: ['Row gaps forming', 'Multiple cut plants', 'Larvae large and numerous'],
-      severe: ['Extensive stand loss', 'Replanting necessary', 'Heavy infestations requiring control']
+      severe:   ['Extensive stand loss', 'Replanting necessary', 'Heavy infestations requiring control'],
     },
     lifecycle: 'Egg (4-10 days) → Larva (25-40 days, 6-7 instars) → Pupa (12-20 days) → Adult (10-14 days)',
     naturalEnemies: ['Parasitic wasps', 'Flies (Tachinidae)', 'Ground beetles', 'Nematodes', 'Hedgehogs'],
     resistanceRisk: 'high',
     treatments: [
-      { name: 'Soil Cultivation', type: 'cultural', description: 'Shallow cultivation to expose larvae', effectiveness: '50%', cost: 'Free', urgency: 'LOW URGENCY' },
-      { name: 'Bacillus thuringiensis', type: 'biological', description: 'Apply as spray', effectiveness: '70%', cost: 'Low', urgency: 'MEDIUM URGENCY' },
-      { name: 'Cypermethrin', type: 'chemical', description: 'Evening application at plant base', effectiveness: '90%', cost: 'Low', urgency: 'HIGH URGENCY', safetyWarning: 'DO NOT apply during flowering. Toxic to bees.' }
+      {
+        name: 'Bacillus thuringiensis',
+        type: 'biological',
+        description: 'Apply as spray',
+        effectiveness: '70%',
+        cost: 'Low',
+        urgency: 'MEDIUM URGENCY',
+        applicationMethod: 'Evening foliar spray targeting young larvae',
+        dosage: '1 kg/ha',
+        precautions: ['Apply to young larvae only', 'Avoid broad-spectrum insecticides'],
+        timing: 'Early larval stages when larvae are small',
+        harvesting: 'No restrictions',
+        biologicalControlDetails: {
+          organism: 'Bacillus thuringiensis (Bt) kurstaki strain',
+          howToUse: 'Bt toxins kill young cutworm larvae when ingested.',
+          releaseRate: '1 kg Bt per hectare',
+          conditions: 'Apply at dusk when larvae are active. Best at 20-28°C.',
+          effectiveness: '65-75% control of young larvae',
+          steps: [
+            'Mix Bt at label rate',
+            'Apply in the evening when cutworms emerge',
+            'Target soil surface and plant bases',
+            'Repeat every 5-7 days',
+          ],
+        },
+      },
+      {
+        name: 'Cypermethrin',
+        type: 'chemical',
+        description: 'Evening application at plant base',
+        effectiveness: '90%',
+        cost: 'Low',
+        urgency: 'HIGH URGENCY',
+        mixingInstructions: 'Mix at label rate',
+        applicationMethod: 'Evening soil surface spray at plant bases',
+        dosage: 'Per label recommendation',
+        precautions: ['DO NOT apply during flowering', 'Toxic to bees'],
+        timing: 'Evening application',
+        harvesting: '14-day waiting period',
+        safetyWarning: 'DO NOT apply during flowering. Toxic to bees.',
+        chemicalDetails: {
+          pesticidesRecommended: [
+            { name: 'Cypermethrin 10% EC', activeIngredient: 'Cypermethrin (pyrethroid)', concentration: '10% emulsifiable concentrate' },
+          ],
+          applicationSteps: STANDARD_APP_STEPS,
+          protectiveEquipment: STANDARD_PPE,
+          dilutionRatio: 'Per label recommendation',
+          sprayTiming: 'Evening when cutworms emerge',
+          weatherConditions: 'Calm, dry weather',
+        },
+      },
     ],
     preventionTips: ['Weed-free before planting', 'Deep plowing', 'Crop rotation', 'Destroy crop residues'],
     imageUrl: 'https://images.unsplash.com/photo-1586003148644-c641c2879b39?w=400&h=300&fit=crop',
-    imageCredits: 'Photo by Agus Dietrich on Unsplash'
+    imageCredits: 'Photo by Agus Dietrich on Unsplash',
   },
+
+  // ── ID 21: Yellow Cutworm ─────────────────────────────────────────────────
   {
     id: '21',
     name: 'Yellow Cutworm',
@@ -740,21 +1813,69 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     spreadMechanism: 'Moths attracted to fields with weeds. Larvae in soil.',
     emergencyThreshold: '5-10% cut plants',
     symptomsStages: {
-      early: ['Minor damage', 'Occasional cut plant', 'Feeding on leaves'],
+      early:    ['Minor damage', 'Occasional cut plant', 'Feeding on leaves'],
       advanced: ['Visible stand reduction', 'Plants wilting', 'Larvae at plant bases'],
-      severe: ['Significant stand loss', 'Uneven crop establishment', 'Control required']
+      severe:   ['Significant stand loss', 'Uneven crop establishment', 'Control required'],
     },
     lifecycle: 'Similar to large cutworm: 4-10 days (egg), 25-40 days (larva), 12-20 days (pupa)',
     naturalEnemies: ['Same as large cutworm - wasps, flies, beetles, nematodes'],
     resistanceRisk: 'medium',
     treatments: [
-      { name: 'Weed Control', type: 'cultural', description: 'Keep fields weed-free for 2 weeks before planting', effectiveness: '60%', cost: 'Free', urgency: 'LOW URGENCY' },
-      { name: 'Chemical Control', type: 'chemical', description: 'Same as large cutworm', effectiveness: '85%', cost: 'Low', urgency: 'HIGH URGENCY', safetyWarning: 'Follow local regulations.' }
+      {
+        name: 'Cultural Control',
+        type: 'cultural',
+        description: 'Weed control and field sanitation',
+        effectiveness: '60%',
+        cost: 'Low',
+        urgency: 'LOW URGENCY',
+        applicationMethod: 'Remove weeds before planting, deep plow',
+        timing: 'Pre-planting and during the season',
+        harvesting: 'No restrictions',
+        culturalControlDetails: {
+          description: 'Removing weeds and crop residues eliminates cutworm breeding habitat.',
+          steps: [
+            'Remove all weeds at least 2 weeks before planting',
+            'Deep plow to destroy overwintering larvae and pupae',
+            'Maintain weed-free field margins',
+            'Monitor for cut seedlings early in the season',
+          ],
+          frequency: 'Ongoing - maintain weed-free conditions throughout season',
+          equipment: ['Tillage equipment', 'Hand tools for weed removal'],
+          results: 'Reduces cutworm habitat and population pressure by 40-60%',
+        },
+      },
+      {
+        name: 'Chemical Control',
+        type: 'chemical',
+        description: 'Same as large cutworm',
+        effectiveness: '85%',
+        cost: 'Low',
+        urgency: 'HIGH URGENCY',
+        mixingInstructions: 'Follow local label recommendations',
+        applicationMethod: 'Evening soil surface application',
+        dosage: 'Per label recommendation',
+        precautions: ['Follow local regulations', 'Wear full PPE'],
+        timing: 'Evening when cutworms are active',
+        harvesting: 'Per product label',
+        safetyWarning: 'Follow local regulations.',
+        chemicalDetails: {
+          pesticidesRecommended: [
+            { name: 'Chlorpyrifos / Lambda-cyhalothrin', activeIngredient: 'Organophosphate or pyrethroid', concentration: 'Per local label' },
+          ],
+          applicationSteps: STANDARD_APP_STEPS,
+          protectiveEquipment: STANDARD_PPE,
+          dilutionRatio: 'Per label recommendation',
+          sprayTiming: 'Evening application when cutworms emerge',
+          weatherConditions: 'Calm, dry weather',
+        },
+      },
     ],
     preventionTips: ['Same as black cutworm', 'Early detection', 'Biological control conservation'],
     imageUrl: 'https://images.unsplash.com/photo-1586003148644-c641c2879b39?w=400&h=300&fit=crop',
-    imageCredits: 'Photo by Agus Dietrich on Unsplash'
+    imageCredits: 'Photo by Agus Dietrich on Unsplash',
   },
+
+  // ── ID 22: Red Spider ─────────────────────────────────────────────────────
   {
     id: '22',
     name: 'Red Spider',
@@ -770,23 +1891,94 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     spreadMechanism: 'Wind dispersal, on clothing, tools, and plant material.',
     emergencyThreshold: '5-10 mites per leaf',
     symptomsStages: {
-      early: ['Fine yellow stippling', 'Few mites on leaf undersides', 'Slight loss of color'],
+      early:    ['Fine yellow stippling', 'Few mites on leaf undersides', 'Slight loss of color'],
       advanced: ['Heavy stippling', 'Mite colonies visible', 'Fine webbing starting'],
-      severe: ['Extensive webbing', 'Leaves bronzing and dropping', 'Plant stress severe']
+      severe:   ['Extensive webbing', 'Leaves bronzing and dropping', 'Plant stress severe'],
     },
-    lifecycle: 'Egg (3-5 days) → Larva (2-3 days) → Protonymph (2-3 days) → Deutonymph (2-3 days) → Adult (5-20 days). Complete cycle 10-14 days in warm conditions.',
+    lifecycle: 'Egg (3-5 days) → Larva (2-3 days) → Protonymph (2-3 days) → Deutonymph (2-3 days) → Adult (5-20 days). Complete cycle 10-14 days.',
     naturalEnemies: ['Predatory mites (Phytoseiulus persimilis, Amblyseius)', 'Ladybird beetles (Stethorus)', 'Lacewings', 'Predatory thrips'],
     resistanceRisk: 'high',
     treatments: [
-      { name: 'Water Spray', type: 'cultural', description: 'Strong water jet to knock off mites', effectiveness: '55%', cost: 'Free', urgency: 'LOW URGENCY' },
-      { name: 'Neem Oil', type: 'organic', description: '2% neem oil + soap spray', effectiveness: '70%', cost: 'Low', urgency: 'MEDIUM URGENCY' },
-      { name: 'Predatory Mites', type: 'biological', description: 'Release Phytoseiulus persimilis', effectiveness: '85%', cost: 'Moderate', urgency: 'MEDIUM URGENCY' },
-      { name: 'Abamectin', type: 'chemical', description: 'Miticide application', effectiveness: '92%', cost: 'Moderate', urgency: 'HIGH URGENCY', safetyWarning: 'Toxic to bees and beneficials.' }
+      {
+        name: 'Neem Oil',
+        type: 'organic',
+        description: '2% neem oil + soap spray',
+        effectiveness: '70%',
+        cost: 'Low',
+        urgency: 'MEDIUM URGENCY',
+        mixingInstructions: 'Mix 20ml neem oil and 5ml soap per liter of water',
+        applicationMethod: 'Spray thoroughly on undersides of leaves',
+        dosage: '2% solution',
+        precautions: ['Apply early morning or evening', 'Ensure thorough coverage of leaf undersides'],
+        timing: 'Weekly during mite infestation',
+        harvesting: '7-day wait period',
+        detailedSteps: [
+          'Prepare 2% neem oil emulsion with soap',
+          'Apply thoroughly to all leaf surfaces especially undersides',
+          'Repeat every 5-7 days',
+          'Increase application frequency during hot dry weather',
+        ],
+      },
+      {
+        name: 'Predatory Mites',
+        type: 'biological',
+        description: 'Release Phytoseiulus persimilis',
+        effectiveness: '85%',
+        cost: 'Moderate',
+        urgency: 'MEDIUM URGENCY',
+        applicationMethod: 'Release on infested plants in the field',
+        dosage: '25-50 per square meter',
+        precautions: ['Avoid broad-spectrum pesticides for 4 weeks before release', 'Maintain adequate humidity'],
+        timing: 'When spider mites first appear',
+        harvesting: 'No restrictions',
+        biologicalControlDetails: {
+          organism: 'Phytoseiulus persimilis - specialized spider mite predator',
+          howToUse: 'This predatory mite feeds exclusively on spider mites, providing rapid control.',
+          releaseRate: '25-50 predatory mites per square meter',
+          conditions: 'Best at 60-80% humidity and 18-25°C',
+          effectiveness: '80-90% spider mite reduction when established',
+          steps: [
+            'Order predatory mites from biological suppliers',
+            'Confirm spider mite presence before ordering',
+            'Release predators as soon as received',
+            'Distribute evenly on infested plants',
+            'Avoid broad-spectrum pesticides for 4+ weeks',
+            'Monitor mite populations weekly',
+          ],
+        },
+      },
+      {
+        name: 'Abamectin',
+        type: 'chemical',
+        description: 'Miticide application',
+        effectiveness: '92%',
+        cost: 'Moderate',
+        urgency: 'HIGH URGENCY',
+        mixingInstructions: 'Mix per label rate (typically 0.5-1 ml/L)',
+        applicationMethod: 'Foliar spray targeting leaf undersides',
+        dosage: '0.5-1 ml/L',
+        precautions: ['Toxic to bees and beneficials', 'Avoid application during flowering'],
+        timing: 'When mite populations exceed threshold',
+        harvesting: '14-day waiting period',
+        safetyWarning: 'Toxic to bees and beneficials.',
+        chemicalDetails: {
+          pesticidesRecommended: [
+            { name: 'Abamectin 1.8% EC', activeIngredient: 'Abamectin (avermectin)', concentration: '1.8% emulsifiable concentrate' },
+          ],
+          applicationSteps: STANDARD_APP_STEPS,
+          protectiveEquipment: STANDARD_PPE,
+          dilutionRatio: '0.5-1 ml per liter water',
+          sprayTiming: 'Early morning or late evening',
+          weatherConditions: 'Temperature 18-28°C, humidity not too low, no rain for 6 hours',
+        },
+      },
     ],
     preventionTips: ['Maintain soil moisture', 'Reduce dust', 'Conserve natural enemies', 'Avoid broad-spectrum pesticides'],
     imageUrl: 'https://images.unsplash.com/photo-1586003148644-c641c2879b39?w=400&h=300&fit=crop',
-    imageCredits: 'Photo by Agus Dietrich on Unsplash'
+    imageCredits: 'Photo by Agus Dietrich on Unsplash',
   },
+
+  // ── ID 23: Corn Borer ─────────────────────────────────────────────────────
   {
     id: '23',
     name: 'Corn Borer',
@@ -802,23 +1994,97 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     spreadMechanism: 'Moths active at night, strong fliers.',
     emergencyThreshold: '50% plants infested at whorl stage',
     symptomsStages: {
-      early: ['Windowpane damage', 'Leaf feeding holes', 'Frass in whorl'],
+      early:    ['Windowpane damage', 'Leaf feeding holes', 'Frass in whorl'],
       advanced: ['Stalk tunneling', 'Tassel breakage', 'Ear tip damage'],
-      severe: ['Stalk breakage', 'Crop lodging', 'Significant yield loss']
+      severe:   ['Stalk breakage', 'Crop lodging', 'Significant yield loss'],
     },
     lifecycle: 'Egg (3-7 days) → Larva (18-25 days, 5 instars) → Pupa (7-10 days) → Adult (7-14 days)',
     naturalEnemies: ['Trichogramma ostriniae (egg parasitoid)', 'Lydella grisescens (larval parasitoid)', 'Ladybird beetles', 'Spiders'],
     resistanceRisk: 'high',
     treatments: [
-      { name: 'Destroy Stubble', type: 'cultural', description: 'Destroy crop residue after harvest', effectiveness: '50%', cost: 'Free', urgency: 'LOW URGENCY' },
-      { name: 'Trichogramma', type: 'biological', description: 'Release egg parasitoids', effectiveness: '70%', cost: 'Moderate', urgency: 'MEDIUM URGENCY' },
-      { name: 'Bt Maize', type: 'cultural', description: 'Use Bt transgenic varieties', effectiveness: '95%', cost: 'Moderate', urgency: 'LOW URGENCY' },
-      { name: 'Chlorantraniliprole', type: 'chemical', description: 'Whorl application', effectiveness: '90%', cost: 'Moderate', urgency: 'HIGH URGENCY', safetyWarning: 'Use as part of resistance management.' }
+      {
+        name: 'Trichogramma Release',
+        type: 'biological',
+        description: 'Release Trichogramma ostriniae egg parasitoids',
+        effectiveness: '70%',
+        cost: 'Moderate',
+        urgency: 'MEDIUM URGENCY',
+        applicationMethod: 'Release parasitoids in field',
+        timing: 'At egg-laying period',
+        harvesting: 'No restrictions',
+        biologicalControlDetails: {
+          organism: 'Trichogramma ostriniae - egg parasitoid wasp',
+          howToUse: 'Wasps parasitize corn borer eggs, preventing larvae from hatching.',
+          releaseRate: '50,000-100,000 wasps per hectare',
+          conditions: 'Release at egg-laying period. Temperature 20-30°C.',
+          effectiveness: '60-80% reduction in corn borer larvae',
+          steps: [
+            'Monitor for corn borer egg-laying through field scouting',
+            'Obtain Trichogramma ostriniae from certified suppliers',
+            'Release 50,000-100,000 wasps per hectare in evening hours',
+            'Distribute releases evenly across the field',
+            'Make multiple releases every 7-10 days during egg-laying',
+            'Monitor egg parasitism rates',
+          ],
+        },
+      },
+      {
+        name: 'Bt Maize Varieties',
+        type: 'cultural',
+        description: 'Plant genetically modified Bt maize varieties',
+        effectiveness: '95%',
+        cost: 'Moderate',
+        urgency: 'LOW URGENCY',
+        applicationMethod: 'Select and plant Bt varieties',
+        timing: 'At planting time',
+        harvesting: 'No restrictions',
+        culturalControlDetails: {
+          description: 'Bt maize produces toxins that kill corn borer larvae when they feed on the plant.',
+          steps: [
+            'Select Bt maize varieties approved for your region',
+            'Obtain certified Bt maize seeds from authorized dealers',
+            'Plant Bt varieties in fields with history of corn borer damage',
+            'Implement refuge areas with non-Bt maize (20% of field)',
+            'Monitor fields for any rare resistant individuals',
+            'Keep detailed records of variety performance',
+          ],
+          frequency: 'Annual - plant Bt varieties each season',
+          equipment: ['Certified Bt maize seeds', 'Field monitoring tools'],
+          results: '90-98% reduction in corn borer damage',
+        },
+      },
+      {
+        name: 'Chlorantraniliprole',
+        type: 'chemical',
+        description: 'Apply at whorl stage for larval control',
+        effectiveness: '90%',
+        cost: 'Moderate',
+        urgency: 'HIGH URGENCY',
+        mixingInstructions: 'Mix 30-45 ml/ha in 200-400 liters water',
+        applicationMethod: 'Foliar spray targeting whorls',
+        dosage: '30-45 ml/ha',
+        precautions: ['Wear protective clothing', 'Avoid drift to non-target areas', 'Do not apply during flowering'],
+        timing: 'At whorl stage when larvae are present',
+        harvesting: '14-day waiting period',
+        safetyWarning: 'Low toxicity to mammals but toxic to aquatic organisms.',
+        chemicalDetails: {
+          pesticidesRecommended: [
+            { name: 'Coragen / Chlorantraniliprole 18.5% SC', activeIngredient: 'Chlorantraniliprole (anthranilic diamide)', concentration: '18.5% suspension concentrate' },
+          ],
+          applicationSteps: STANDARD_APP_STEPS,
+          protectiveEquipment: STANDARD_PPE,
+          dilutionRatio: '30-45 ml in 200-400 liters water per hectare',
+          sprayTiming: 'Apply at whorl stage when corn borer eggs hatch',
+          weatherConditions: 'Calm weather (<5 km/h wind), temperature 20-30°C, no rain for 6 hours',
+        },
+      },
     ],
     preventionTips: ['Grain sorghum rotation', 'Destroy crop residues', 'Use resistant varieties', 'Early planting'],
     imageUrl: 'https://images.unsplash.com/photo-1586003148644-c641c2879b39?w=400&h=300&fit=crop',
-    imageCredits: 'Photo by Agus Dietrich on Unsplash'
+    imageCredits: 'Photo by Agus Dietrich on Unsplash',
   },
+
+  // ── ID 24: Army Worm ──────────────────────────────────────────────────────
   {
     id: '24',
     name: 'Army Worm',
@@ -834,22 +2100,72 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     spreadMechanism: 'Moths migrate long distances. Larvae march to find food.',
     emergencyThreshold: '3-4 larvae per square meter',
     symptomsStages: {
-      early: ['Leaf skeletonization', 'Small larvae present', 'Minor damage'],
+      early:    ['Leaf skeletonization', 'Small larvae present', 'Minor damage'],
       advanced: ['Extensive leaf loss', 'Large larvae visible', 'Ground covered with frass'],
-      severe: ['Crops completely stripped', 'Emergency action needed', 'Complete crop loss']
+      severe:   ['Crops completely stripped', 'Emergency action needed', 'Complete crop loss'],
     },
     lifecycle: 'Egg (2-5 days) → Larva (14-22 days, 6 instars) → Pupa (7-14 days in soil) → Adult (7-10 days)',
     naturalEnemies: ['Parasitic wasps (Cotesia, Chelonus)', 'Flies (Tachinidae, Sarcophagidae)', 'Ground beetles', 'Birds', 'Spiders'],
     resistanceRisk: 'medium',
     treatments: [
-      { name: 'Trenching', type: 'cultural', description: 'Dig trenches to stop marching larvae', effectiveness: '60%', cost: 'Low', urgency: 'MEDIUM URGENCY' },
-      { name: 'Bt Spray', type: 'biological', description: 'Early detection application', effectiveness: '75%', cost: 'Low', urgency: 'MEDIUM URGENCY' },
-      { name: 'Lambda-cyhalothrin', type: 'chemical', description: 'Emergency application', effectiveness: '95%', cost: 'Low', urgency: 'HIGH URGENCY', safetyWarning: 'Follow emergency use protocols.' }
+      {
+        name: 'Bt Spray',
+        type: 'biological',
+        description: 'Apply Bacillus thuringiensis for larval control',
+        effectiveness: '75%',
+        cost: 'Low',
+        urgency: 'MEDIUM URGENCY',
+        applicationMethod: 'Foliar spray on larvae',
+        timing: 'When larvae are small (1-3 instar)',
+        harvesting: 'No restrictions',
+        biologicalControlDetails: {
+          organism: 'Bacillus thuringiensis (Bt) kurstaki strain - naturally occurring soil bacterium',
+          howToUse: 'Bt toxins kill armyworm larvae when ingested.',
+          releaseRate: '1 kg Bt formulation per hectare',
+          conditions: 'Apply when larvae are in early instars (1-3) for best results.',
+          effectiveness: '70-85% control of armyworm larvae',
+          steps: [
+            'Monitor fields regularly for armyworm egg masses and small larvae',
+            'Apply Bt when larvae are in early instars (1-3)',
+            'Mix Bt thoroughly in clean water according to label',
+            'Apply as foliar spray ensuring good coverage',
+            'Repeat applications every 5-7 days if needed',
+            'Apply in evening when larvae are actively feeding',
+          ],
+        },
+      },
+      {
+        name: 'Lambda-cyhalothrin',
+        type: 'chemical',
+        description: 'Emergency application for severe infestations',
+        effectiveness: '95%',
+        cost: 'Low',
+        urgency: 'HIGH URGENCY',
+        mixingInstructions: 'Mix 25-50 ml/ha in 200-400 liters water',
+        applicationMethod: 'Foliar spray targeting larvae',
+        dosage: '25-50 ml/ha',
+        precautions: ['Wear protective clothing', 'Avoid application near water bodies'],
+        timing: 'When larvae reach damaging levels',
+        harvesting: '7-day waiting period',
+        safetyWarning: 'Highly toxic to aquatic life and bees.',
+        chemicalDetails: {
+          pesticidesRecommended: [
+            { name: 'Karate / Lambda-cyhalothrin 5% EC', activeIngredient: 'Lambda-cyhalothrin (pyrethroid)', concentration: '5% emulsifiable concentrate' },
+          ],
+          applicationSteps: STANDARD_APP_STEPS,
+          protectiveEquipment: STANDARD_PPE,
+          dilutionRatio: '25-50 ml in 200-400 liters water per hectare',
+          sprayTiming: 'Apply when armyworm larvae reach economic threshold',
+          weatherConditions: 'Calm weather, temperature 20-30°C, no rain for 6 hours',
+        },
+      },
     ],
     preventionTips: ['Early warning systems', 'Regular scouting', 'Plant early', 'Conserve natural enemies'],
     imageUrl: 'https://images.unsplash.com/photo-1586003148644-c641c2879b39?w=400&h=300&fit=crop',
-    imageCredits: 'Photo by Agus Dietrich on Unsplash'
+    imageCredits: 'Photo by Agus Dietrich on Unsplash',
   },
+
+  // ── ID 25: Aphids ─────────────────────────────────────────────────────────
   {
     id: '25',
     name: 'Aphids',
@@ -865,265 +2181,407 @@ export const KNOWLEDGE_BASE: PestInfo[] = [
     spreadMechanism: 'Winged forms fly. Ants tend colonies.',
     emergencyThreshold: 'Varies by crop, generally 5-10 per leaf',
     symptomsStages: {
-      early: ['Small colonies on new growth', 'Honeydew present', 'Ants attending'],
+      early:    ['Small colonies on new growth', 'Honeydew present', 'Ants attending'],
       advanced: ['Severe leaf curling', 'Extensive honeydew', 'Sooty mold covering'],
-      severe: ['Plant stunting', 'Virus infection spreading', 'Reduced yield significantly']
+      severe:   ['Plant stunting', 'Virus infection spreading', 'Reduced yield significantly'],
     },
-    lifecycle: 'Egg (in winter) → Nymph (4-10 days) → Adult (7-20 days). Can reproduce parthenogenetically. Complete cycle 7-10 days under ideal conditions.',
+    lifecycle: 'Egg (in winter) → Nymph (4-10 days) → Adult (7-20 days). Can reproduce parthenogenetically.',
     naturalEnemies: ['Ladybird beetles (Coccinellidae)', 'Lacewings (Chrysopidae)', 'Hoverfly larvae (Syrphidae)', 'Parasitic wasps (Aphidius)', 'Spiders'],
     resistanceRisk: 'high',
     treatments: [
-      { name: 'Water Spray', type: 'cultural', description: 'Strong water jet dislodges aphids', effectiveness: '45%', cost: 'Free', urgency: 'LOW URGENCY' },
-      { name: 'Ladybirds', type: 'biological', description: 'Release beneficial insects', effectiveness: '75%', cost: 'Moderate', urgency: 'MEDIUM URGENCY' },
-      { name: 'Neem Oil', type: 'organic', description: '2% neem oil spray', effectiveness: '65%', cost: 'Low', urgency: 'MEDIUM URGENCY' },
-      { name: 'Imidacloprid', type: 'chemical', description: 'Selective aphicide', effectiveness: '90%', cost: 'Low', urgency: 'HIGH URGENCY', safetyWarning: 'Toxic to bees. Systemic insecticide.' }
+      {
+        name: 'Ladybird Beetle Release',
+        type: 'biological',
+        description: 'Release ladybird beetles (Coccinella spp.) as natural predators',
+        effectiveness: '75%',
+        cost: 'Moderate',
+        urgency: 'MEDIUM URGENCY',
+        applicationMethod: 'Release adult beetles in field',
+        timing: 'When aphids first appear',
+        harvesting: 'No restrictions',
+        biologicalControlDetails: {
+          organism: 'Ladybird beetles (Coccinella spp.) - voracious aphid predators',
+          howToUse: 'Ladybird beetles consume hundreds of aphids per day in both larval and adult stages.',
+          releaseRate: '5,000-10,000 beetles per hectare',
+          conditions: 'Release in early morning or evening. Avoid hot midday.',
+          effectiveness: '70-85% aphid population reduction when timed correctly',
+          steps: [
+            'Monitor fields regularly for aphid colonies using yellow sticky traps',
+            'Obtain healthy ladybird beetles from certified biological suppliers',
+            'Release 5,000-10,000 beetles per hectare in early morning or evening',
+            'Distribute releases evenly across the field, focusing on aphid hotspots',
+            'Provide alternative food sources like flowering plants near field borders',
+            'Monitor beetle establishment and reproduction in the field',
+            'Make follow-up releases if needed',
+          ],
+        },
+      },
+      {
+        name: 'Neem Oil Spray',
+        type: 'organic',
+        description: 'Apply 2% neem oil emulsion as contact insecticide',
+        effectiveness: '65%',
+        cost: 'Low',
+        urgency: 'MEDIUM URGENCY',
+        mixingInstructions: 'Mix 20ml neem oil, 5ml soap per liter water',
+        applicationMethod: 'Foliar spray with neem oil emulsion',
+        dosage: '2% solution',
+        precautions: ['Apply early morning or late evening', 'Test on sensitive varieties first'],
+        timing: 'Early morning or late evening',
+        harvesting: 'No restrictions',
+        detailedSteps: [
+          'Prepare 2% neem oil emulsion with soap emulsifier',
+          'Apply as fine mist to ensure complete coverage of plant surfaces',
+          'Focus on undersides of leaves where aphids congregate',
+          'Repeat applications every 7-10 days during aphid pressure periods',
+          'Combine with insecticidal soap for enhanced control',
+        ],
+      },
+      {
+        name: 'Imidacloprid',
+        type: 'chemical',
+        description: 'Apply systemic insecticide for aphid control',
+        effectiveness: '90%',
+        cost: 'Low',
+        urgency: 'HIGH URGENCY',
+        mixingInstructions: 'Mix 0.5-1 ml/liter water for foliar spray',
+        applicationMethod: 'Foliar spray or soil drench',
+        dosage: '0.5-1 ml/liter water',
+        precautions: ['Wear protective clothing', 'Avoid application near water sources', 'Do not apply during flowering'],
+        timing: 'At first sign of aphid infestation',
+        harvesting: '21-30 day waiting period depending on crop',
+        safetyWarning: 'Highly toxic to bees and beneficial insects. Systemic insecticide with long residual effect.',
+        chemicalDetails: {
+          pesticidesRecommended: [
+            { name: 'Confidor / Imidacloprid 17.8% SL', activeIngredient: 'Imidacloprid (neonicotinoid)', concentration: '17.8% soluble liquid' },
+          ],
+          applicationSteps: STANDARD_APP_STEPS,
+          protectiveEquipment: STANDARD_PPE,
+          dilutionRatio: '0.5-1 ml imidacloprid per liter of water',
+          sprayTiming: 'Apply at first sign of aphids, before populations explode',
+          weatherConditions: 'Calm weather (<5 km/h wind), temperature 20-30°C, no rain for 6 hours',
+        },
+      },
     ],
     preventionTips: ['Avoid excess nitrogen', 'Conserve natural enemies', 'Monitor regularly', 'Control ant colonies'],
     imageUrl: 'https://images.unsplash.com/photo-1586003148644-c641c2879b39?w=400&h=300&fit=crop',
-    imageCredits: 'Photo by Agus Dietrich on Unsplash'
-  }
+    imageCredits: 'Photo by Agus Dietrich on Unsplash',
+  },
 ];
 
-// Detailed pest data for remaining 77 pests
-const detailedPestData = [
-  { name: 'Potosiabre vitarsis', scientific: 'Potosiabre vitarsis', type: 'Beetle', season: 'Summer', severity: 'medium' as const, crops: ['Soybean', 'Beans'] },
-  { name: 'Peach Borer', scientific: 'Synanthedon exitiosa', type: 'Moth', season: 'Spring-Summer', severity: 'high' as const, crops: ['Peach', 'Plum', 'Cherry'] },
-  { name: 'English Grain Aphid', scientific: 'Sitobion avenae', type: 'Insect', season: 'Spring', severity: 'medium' as const, crops: ['Wheat', 'Barley', 'Oats'] },
-  { name: 'Green Bug', scientific: 'Schizaphis graminum', type: 'Insect', season: 'Spring', severity: 'high' as const, crops: ['Wheat', 'Barley', 'Sorghum'] },
-  { name: 'Bird Cherry-Oat Aphid', scientific: 'Rhopalosiphum padi', type: 'Insect', season: 'Spring', severity: 'medium' as const, crops: ['Wheat', 'Barley', 'Oats'] },
-  { name: 'Wheat Blossom Midge', scientific: 'Sitodiplosis mosellana', type: 'Fly', season: 'Flowering', severity: 'high' as const, crops: ['Wheat'] },
-  { name: 'Penthaleus major', scientific: 'Penthaleus major', type: 'Mite', season: 'Winter-Spring', severity: 'medium' as const, crops: ['Wheat', 'Barley', 'Pastures'] },
-  { name: 'Longlegged Spider Mite', scientific: 'Tetranychus kanzawai', type: 'Arachnid', season: 'Dry season', severity: 'medium' as const, crops: ['Tea', 'Fruits', 'Vegetables'] },
-  { name: 'Wheat Phloeothrips', scientific: 'Haplothrips tritici', type: 'Thrips', season: 'Heading', severity: 'low' as const, crops: ['Wheat'] },
-  { name: 'Wheat Sawfly', scientific: 'Cephus cinctus', type: 'Wasp', season: 'Stem elongation', severity: 'medium' as const, crops: ['Wheat'] },
-  { name: 'Cerodonta denticornis', scientific: 'Cerodonta denticornis', type: 'Beetle', season: 'Summer', severity: 'low' as const, crops: ['Wheat', 'Barley'] },
-  { name: 'Beet Fly', scientific: 'Pegomya hyoscyami', type: 'Fly', season: 'Spring-Summer', severity: 'medium' as const, crops: ['Sugar Beet', 'Spinach'] },
-  { name: 'Flea Beetle', scientific: 'Phyllotreta spp.', type: 'Beetle', season: 'Spring', severity: 'medium' as const, crops: ['Cabbage', 'Canola', 'Mustard'] },
-  { name: 'Cabbage Army Worm', scientific: 'Mamestra brassicae', type: 'Moth', season: 'Summer', severity: 'high' as const, crops: ['Cabbage', 'Broccoli', 'Cauliflower'] },
-  { name: 'Beet Army Worm', scientific: 'Spodoptera exigua', type: 'Moth', season: 'Summer-Fall', severity: 'high' as const, crops: ['Vegetables', 'Cotton', 'Soybean'] },
-  { name: 'Beet Spot Flies', scientific: 'Pegomya betae', type: 'Fly', season: 'Spring', severity: 'low' as const, crops: ['Sugar Beet'] },
-  { name: 'Meadow Moth', scientific: 'Loxostege sticticalis', type: 'Moth', season: 'Summer', severity: 'high' as const, crops: ['Alfalfa', 'Sugar Beet', 'Soybean'] },
-  { name: 'Beet Weevil', scientific: 'Bothynoderes punctiventris', type: 'Weevil', season: 'Spring', severity: 'medium' as const, crops: ['Sugar Beet'] },
-  { name: 'Sericaorientalismotschulsky', scientific: 'Serica orientalis', type: 'Beetle', season: 'Summer', severity: 'low' as const, crops: ['Soybean', 'Peanut'] },
-  { name: 'Alfalfa Weevil', scientific: 'Hypera postica', type: 'Weevil', season: 'Spring', severity: 'high' as const, crops: ['Alfalfa'] },
-  { name: 'Flax Budworm', scientific: 'Heliothis ononis', type: 'Moth', season: 'Summer', severity: 'medium' as const, crops: ['Flax', 'Alfalfa'] },
-  { name: 'Alfalfa Plant Bug', scientific: 'Adelphocoris lineolatus', type: 'Bug', season: 'Summer', severity: 'medium' as const, crops: ['Alfalfa', 'Soybean'] },
-  { name: 'Tarnished Plant Bug', scientific: 'Lygus lineolaris', type: 'Bug', season: 'Summer', severity: 'medium' as const, crops: ['Cotton', 'Fruits', 'Vegetables'] },
-  { name: 'Locustoidea', scientific: 'Locusta migratoria', type: 'Grasshopper', season: 'Summer', severity: 'high' as const, crops: ['All crops'] },
-  { name: 'Lytta polita', scientific: 'Lytta polita', type: 'Beetle', season: 'Summer', severity: 'low' as const, crops: ['Alfalfa', 'Beans'] },
-  { name: 'Legume Blister Beetle', scientific: 'Epicauta spp.', type: 'Beetle', season: 'Summer', severity: 'medium' as const, crops: ['Alfalfa', 'Soybean', 'Beans'] },
-  { name: 'Blister Beetle', scientific: 'Meloidae family', type: 'Beetle', season: 'Summer', severity: 'medium' as const, crops: ['Alfalfa', 'Potato', 'Tomato'] },
-  { name: 'Therioaphis maculata Buckton', scientific: 'Therioaphis maculata', type: 'Insect', season: 'Spring-Summer', severity: 'high' as const, crops: ['Alfalfa'] },
-  { name: 'Odontothrips loti', scientific: 'Odontothrips loti', type: 'Thrips', season: 'Summer', severity: 'low' as const, crops: ['Alfalfa', 'Clover'] },
-  { name: 'Thrips', scientific: 'Thrips tabaci', type: 'Thrips', season: 'Summer', severity: 'medium' as const, crops: ['Onion', 'Cabbage', 'Cotton'] },
-  { name: 'Alfalfa Seed Chalcid', scientific: 'Bruchophagus roddi', type: 'Wasp', season: 'Flowering', severity: 'medium' as const, crops: ['Alfalfa'] },
-  { name: 'Pieris canidia', scientific: 'Pieris canidia', type: 'Butterfly', season: 'Spring-Summer', severity: 'medium' as const, crops: ['Cabbage', 'Mustard'] },
-  { name: 'Apolygus lucorum', scientific: 'Apolygus lucorum', type: 'Bug', season: 'Summer', severity: 'medium' as const, crops: ['Cotton', 'Fruits', 'Tea'] },
-  { name: 'Limacodidae', scientific: 'Parasa consocia', type: 'Moth', season: 'Summer', severity: 'low' as const, crops: ['Fruits', 'Forest trees'] },
-  { name: 'Viteus vitifoliae', scientific: 'Daktulosphaira vitifoliae', type: 'Insect', season: 'Spring-Summer', severity: 'high' as const, crops: ['Grape'] },
-  { name: 'Colomerus vitis', scientific: 'Colomerus vitis', type: 'Mite', season: 'Spring', severity: 'medium' as const, crops: ['Grape'] },
-  { name: 'Brevipoalpus lewisi McGregor', scientific: 'Brevipalpus lewisi', type: 'Mite', season: 'Summer', severity: 'low' as const, crops: ['Citrus', 'Grape'] },
-  { name: 'Oides decempunctata', scientific: 'Oides decempunctata', type: 'Beetle', season: 'Summer', severity: 'medium' as const, crops: ['Grape'] },
-  { name: 'Polyphagotarsonemus latus', scientific: 'Polyphagotarsonemus latus', type: 'Mite', season: 'Wet season', severity: 'high' as const, crops: ['Tea', 'Pepper', 'Citrus'] },
-  { name: 'Pseudococcus comstocki Kuwana', scientific: 'Pseudococcus comstocki', type: 'Mealybug', season: 'Summer', severity: 'medium' as const, crops: ['Fruits', 'Mulberry'] },
-  { name: 'Parathrene regalis', scientific: 'Synanthedon regalis', type: 'Moth', season: 'Summer', severity: 'medium' as const, crops: ['Grape'] },
-  { name: 'Ampelophaga', scientific: 'Ampelophaga rubiginosa', type: 'Moth', season: 'Summer', severity: 'low' as const, crops: ['Grape'] },
-  { name: 'Lycorma delicatula', scientific: 'Lycorma delicatula', type: 'Planthopper', season: 'Summer-Fall', severity: 'high' as const, crops: ['Grape', 'Fruit trees'] },
-  { name: 'Xylotrechus', scientific: 'Xylotrechus pyrrhoderus', type: 'Beetle', season: 'Summer', severity: 'medium' as const, crops: ['Grape'] },
-  { name: 'Cicadella viridis', scientific: 'Cicadella viridis', type: 'Leafhopper', season: 'Summer', severity: 'low' as const, crops: ['Rice', 'Vegetables'] },
-  { name: 'Miridae', scientific: 'Lygus spp.', type: 'Bug', season: 'Summer', severity: 'medium' as const, crops: ['Cotton', 'Fruits', 'Vegetables'] },
-  { name: 'Trialeurodes vaporariorum', scientific: 'Trialeurodes vaporariorum', type: 'Whitefly', season: 'Year-round', severity: 'high' as const, crops: ['Tomato', 'Cucumber', 'Bean'] },
-  { name: 'Erythroneura apicalis', scientific: 'Erythroneura apicalis', type: 'Leafhopper', season: 'Summer', severity: 'medium' as const, crops: ['Grape'] },
-  { name: 'Papilio xuthus', scientific: 'Papilio xuthus', type: 'Butterfly', season: 'Spring-Summer', severity: 'low' as const, crops: ['Citrus'] },
-  { name: 'Panonchus citri McGregor', scientific: 'Panonychus citri', type: 'Mite', season: 'Dry season', severity: 'high' as const, crops: ['Citrus'] },
-  { name: 'Phyllocoptes oleiverus ashmead', scientific: 'Phyllocoptes oleiverus', type: 'Mite', season: 'Spring', severity: 'medium' as const, crops: ['Olive'] },
-  { name: 'Icerya purchasi Maskell', scientific: 'Icerya purchasi', type: 'Scale insect', season: 'Year-round', severity: 'high' as const, crops: ['Citrus', 'Fruits'] },
-  { name: 'Unaspis yanonensis', scientific: 'Unaspis yanonensis', type: 'Scale insect', season: 'Spring-Summer', severity: 'high' as const, crops: ['Citrus'] },
-  { name: 'Ceroplastes rubens', scientific: 'Ceroplastes rubens', type: 'Scale insect', season: 'Summer', severity: 'medium' as const, crops: ['Citrus', 'Fruits'] },
-  { name: 'Chrysomphalus aonidum', scientific: 'Chrysomphalus aonidum', type: 'Scale insect', season: 'Year-round', severity: 'medium' as const, crops: ['Citrus'] },
-  { name: 'Parlatoria zizyphus Lucus', scientific: 'Parlatoria zizyphus', type: 'Scale insect', season: 'Spring-Summer', severity: 'medium' as const, crops: ['Citrus', 'Jujube'] },
-  { name: 'Nipaecoccus vastalor', scientific: 'Nipaecoccus vastator', type: 'Mealybug', season: 'Summer', severity: 'high' as const, crops: ['Citrus', 'Grape'] },
-  { name: 'Aleurocanthus spiniferus', scientific: 'Aleurocanthus spiniferus', type: 'Whitefly', season: 'Spring-Summer', severity: 'medium' as const, crops: ['Citrus'] },
-  { name: 'Tetradacus c Bactrocera minax', scientific: 'Bactrocera minax', type: 'Fruit fly', season: 'Summer', severity: 'high' as const, crops: ['Citrus'] },
-  { name: 'Dacus dorsalis(Hendel)', scientific: 'Bactrocera dorsalis', type: 'Fruit fly', season: 'Year-round', severity: 'high' as const, crops: ['Mango', 'Citrus', 'Guava'] },
-  { name: 'Bactrocera tsuneonis', scientific: 'Bactrocera tsuneonis', type: 'Fruit fly', season: 'Summer', severity: 'high' as const, crops: ['Citrus'] },
-  { name: 'Prodenia litura', scientific: 'Spodoptera litura', type: 'Moth', season: 'Year-round', severity: 'high' as const, crops: ['Many crops'] },
-  { name: 'Adristyrannus', scientific: 'Adristyrannus spp.', type: 'Beetle', season: 'Summer', severity: 'low' as const, crops: ['Unknown'] },
-  { name: 'Phyllocnistis citrella Stainton', scientific: 'Phyllocnistis citrella', type: 'Moth', season: 'Spring-Summer', severity: 'medium' as const, crops: ['Citrus'] },
-  { name: 'Toxoptera citricidus', scientific: 'Toxoptera citricidus', type: 'Insect', season: 'Spring', severity: 'high' as const, crops: ['Citrus'] },
-  { name: 'Toxoptera aurantii', scientific: 'Toxoptera aurantii', type: 'Insect', season: 'Spring', severity: 'medium' as const, crops: ['Citrus', 'Tea'] },
-  { name: 'Aphis citricola Vander Goot', scientific: 'Aphis spiraecola', type: 'Insect', season: 'Spring', severity: 'medium' as const, crops: ['Citrus'] },
-  { name: 'Scirtothrips dorsalis Hood', scientific: 'Scirtothrips dorsalis', type: 'Thrips', season: 'Summer', severity: 'high' as const, crops: ['Tea', 'Pepper', 'Mango'] },
-  { name: 'Dasineura sp', scientific: 'Dasineura spp.', type: 'Fly', season: 'Spring', severity: 'medium' as const, crops: ['Various'] },
-  { name: 'Lawana imitata Melichar', scientific: 'Lawana imitata', type: 'Planthopper', season: 'Summer', severity: 'low' as const, crops: ['Fruit trees'] },
-  { name: 'Salurnis marginella Guerr', scientific: 'Salurnis marginella', type: 'Bug', season: 'Summer', severity: 'low' as const, crops: ['Fruit trees'] },
-  { name: 'Deporaus marginatus Pascoe', scientific: 'Deporaus marginatus', type: 'Weevil', season: 'Spring', severity: 'medium' as const, crops: ['Mango'] },
-  { name: 'Chlumetia transversa', scientific: 'Chlumetia transversa', type: 'Moth', season: 'Summer', severity: 'high' as const, crops: ['Mango'] },
-  { name: 'Mango Flat Beak Leafhopper', scientific: 'Idioscopus clypealis', type: 'Leafhopper', season: 'Flowering', severity: 'high' as const, crops: ['Mango'] },
-  { name: 'Rhytidodera bowrinii white', scientific: 'Rhytidodera bowringii', type: 'Beetle', season: 'Summer', severity: 'medium' as const, crops: ['Mango'] },
-  { name: 'Sternochetus frigidus', scientific: 'Sternochetus frigidus', type: 'Weevil', season: 'Fruit development', severity: 'medium' as const, crops: ['Mango'] },
-  { name: 'Cicadellidae', scientific: 'Cicadellidae family', type: 'Leafhopper', season: 'Summer', severity: 'medium' as const, crops: ['Many crops'] }
-];
-
-// Function to generate remaining pests with realistic data
-export function generateRemainingPests(): PestInfo[] {
-  const remainingPests: PestInfo[] = [];
-  let id = 26;
-  
-  for (const pest of detailedPestData) {
-    const commonCrops = pest.crops.map(crop => crop);
-    const allCrops = [...commonCrops];
-    
-    remainingPests.push({
-      id: String(id),
-      name: pest.name,
-      scientificName: pest.scientific,
-      type: pest.type,
-      severity: pest.severity,
-      season: pest.season,
-      description: `${pest.name} (${pest.scientific}) is a ${pest.severity} severity ${pest.type.toLowerCase()} that affects ${commonCrops.join(', ')}. This pest is most active during ${pest.season.toLowerCase()}.`,
-      damageSymptoms: [
-        'Feeding damage visible on leaves',
-        'Reduced plant vigor',
-        'Yield loss in severe infestations',
-        'Characteristic pest-specific damage patterns'
-      ],
-      cropAffected: commonCrops,
-      affectedCrops: allCrops,
-      favourableConditions: `${pest.season} conditions with moderate temperatures favor population growth.`,
-      spreadMechanism: 'Natural dispersal and through infested plant material.',
-      emergencyThreshold: 'Consult local agricultural extension for specific thresholds.',
-      symptomsStages: {
-        early: ['Minor feeding damage visible', 'Small pest colonies beginning'],
-        advanced: ['Extensive damage developing', 'Pest populations increasing'],
-        severe: ['Severe damage causing yield loss', 'Control measures required immediately']
-      },
-      lifecycle: `Lifecycle varies by ${pest.type.toLowerCase()} species and environmental conditions.`,
-      naturalEnemies: ['Generalist predators include ladybird beetles, lacewings, and parasitic wasps'],
-      resistanceRisk: pest.severity === 'high' ? 'medium' : 'low',
-      treatments: [
-        { name: 'Cultural Control', type: 'cultural', description: 'Implement crop rotation and field sanitation', effectiveness: '60%', cost: 'Free', urgency: 'LOW URGENCY' },
-        { name: 'Biological Control', type: 'biological', description: 'Conserve and release natural enemies', effectiveness: '65%', cost: 'Low', urgency: 'MEDIUM URGENCY' },
-        { name: 'Chemical Control', type: 'chemical', description: 'Consult local recommendations for approved pesticides', effectiveness: '85%', cost: 'Variable', urgency: 'HIGH URGENCY', safetyWarning: 'Follow local guidelines and pesticide labels' }
-      ],
-      preventionTips: [
-        'Regular field monitoring and scouting',
-        'Maintain crop diversity and rotation',
-        'Use resistant varieties when available',
-        'Practice good field sanitation',
-        'Conserve beneficial insects'
-      ],
-      imageUrl: 'https://images.unsplash.com/photo-1586003148644-c641c2879b39?w=400&h=300&fit=crop',
-      imageCredits: 'Photo for illustrative purposes'
-    });
-    id++;
-  }
-  
-  return remainingPests;
-}
-
-// Combine base pests with generated ones
-export const ALL_PESTS: PestInfo[] = [...KNOWLEDGE_BASE, ...generateRemainingPests()];
-
-// Export the knowledge base with all 102 pests
-export { KNOWLEDGE_BASE as BASE_PESTS };
-
-// Helper functions
-export const getPestById = (id: string): PestInfo | undefined => {
-  return ALL_PESTS.find(pest => pest.id === id);
+// ─── Emergency Contacts ───────────────────────────────────────────────────────
+export const EMERGENCY_CONTACTS = {
+  national: {
+    name: 'Environmental Management Agency (EMA)',
+    phone: '086-770-044-4',
+    hours: '24/7',
+    tollFree: '0800-8000',
+    whatsapp: '+263772159457',
+  },
+  local: {
+    name: 'City Council Pest Control',
+    phone: '+263-242-758-980',
+    hours: '24/7 Emergency',
+    whatsapp: '+263242758980',
+  },
+  poison: {
+    name: 'Poison Control Centre - Parirenyatwa Hospital',
+    phone: '+263-4-706-021',
+    hours: '24/7',
+    emergency: '+263-712-111-222',
+    whatsapp: '+263712111222',
+  },
+  pestControl: {
+    name: 'Pest Control Services & Fumigation',
+    phone: '+263-242-250-493',
+    hours: '08:00 - 16:30',
+    whatsapp: '+263772593344',
+  },
+  ambulance: {
+    name: 'Emergency Medical Services',
+    phone: '111',
+    hours: '24/7',
+  },
+  police: {
+    name: 'Zimbabwe Republic Police',
+    phone: '112',
+    hours: '24/7',
+  },
+  fire: {
+    name: 'Fire Brigade',
+    phone: '113',
+    hours: '24/7',
+  },
 };
 
+// ─── generateRemainingPests ───────────────────────────────────────────────────
+const detailedPestData = [
+  { id: '26',  name: 'Potosiabre vitarsis',           scientific: 'Potosiabre vitarsis',         type: 'Beetle',       season: 'Summer',            severity: 'medium' as const, crops: ['Soybean', 'Beans'] },
+  { id: '27',  name: 'Peach Borer',                   scientific: 'Synanthedon exitiosa',         type: 'Moth',         season: 'Spring-Summer',     severity: 'high'   as const, crops: ['Peach', 'Plum', 'Cherry'] },
+  { id: '28',  name: 'English Grain Aphid',           scientific: 'Sitobion avenae',              type: 'Insect',       season: 'Spring',            severity: 'medium' as const, crops: ['Wheat', 'Barley', 'Oats'] },
+  { id: '29',  name: 'Green Bug',                     scientific: 'Schizaphis graminum',          type: 'Insect',       season: 'Spring',            severity: 'high'   as const, crops: ['Wheat', 'Barley', 'Sorghum'] },
+  { id: '30',  name: 'Bird Cherry-Oat Aphid',         scientific: 'Rhopalosiphum padi',           type: 'Insect',       season: 'Spring',            severity: 'medium' as const, crops: ['Wheat', 'Barley', 'Oats'] },
+  { id: '31',  name: 'Wheat Blossom Midge',           scientific: 'Sitodiplosis mosellana',       type: 'Fly',          season: 'Flowering',         severity: 'high'   as const, crops: ['Wheat'] },
+  { id: '32',  name: 'Penthaleus major',              scientific: 'Penthaleus major',             type: 'Mite',         season: 'Winter-Spring',     severity: 'medium' as const, crops: ['Wheat', 'Barley', 'Pastures'] },
+  { id: '33',  name: 'Longlegged Spider Mite',        scientific: 'Tetranychus kanzawai',         type: 'Arachnid',     season: 'Dry season',        severity: 'medium' as const, crops: ['Tea', 'Fruits', 'Vegetables'] },
+  { id: '34',  name: 'Wheat Phloeothrips',            scientific: 'Haplothrips tritici',          type: 'Thrips',       season: 'Heading',           severity: 'low'    as const, crops: ['Wheat'] },
+  { id: '35',  name: 'Wheat Sawfly',                  scientific: 'Cephus cinctus',               type: 'Wasp',         season: 'Stem elongation',   severity: 'medium' as const, crops: ['Wheat'] },
+  { id: '36',  name: 'Cerodonta denticornis',         scientific: 'Cerodonta denticornis',        type: 'Beetle',       season: 'Summer',            severity: 'low'    as const, crops: ['Wheat', 'Barley'] },
+  { id: '37',  name: 'Beet Fly',                      scientific: 'Pegomya hyoscyami',            type: 'Fly',          season: 'Spring-Summer',     severity: 'medium' as const, crops: ['Sugar Beet', 'Spinach'] },
+  { id: '38',  name: 'Flea Beetle',                   scientific: 'Phyllotreta spp.',             type: 'Beetle',       season: 'Spring',            severity: 'medium' as const, crops: ['Cabbage', 'Canola', 'Mustard'] },
+  { id: '39',  name: 'Cabbage Army Worm',             scientific: 'Mamestra brassicae',           type: 'Moth',         season: 'Summer',            severity: 'high'   as const, crops: ['Cabbage', 'Broccoli', 'Cauliflower'] },
+  { id: '40',  name: 'Beet Army Worm',                scientific: 'Spodoptera exigua',            type: 'Moth',         season: 'Summer-Fall',       severity: 'high'   as const, crops: ['Vegetables', 'Cotton', 'Soybean'] },
+  { id: '41',  name: 'Beet Spot Flies',               scientific: 'Pegomya betae',                type: 'Fly',          season: 'Spring',            severity: 'low'    as const, crops: ['Sugar Beet'] },
+  { id: '42',  name: 'Meadow Moth',                   scientific: 'Loxostege sticticalis',        type: 'Moth',         season: 'Summer',            severity: 'high'   as const, crops: ['Alfalfa', 'Sugar Beet', 'Soybean'] },
+  { id: '43',  name: 'Beet Weevil',                   scientific: 'Bothynoderes punctiventris',   type: 'Weevil',       season: 'Spring',            severity: 'medium' as const, crops: ['Sugar Beet'] },
+  { id: '44',  name: 'Serica orientalis',             scientific: 'Serica orientalis',            type: 'Beetle',       season: 'Summer',            severity: 'low'    as const, crops: ['Soybean', 'Peanut'] },
+  { id: '45',  name: 'Soybean Spotted Beetle',        scientific: 'Epilachna vigintioctopunctata',type: 'Beetle',       season: 'Summer',            severity: 'high'   as const, crops: ['Soybean', 'Beans'] },
+  { id: '46',  name: 'Cotton Bollworm',               scientific: 'Helicoverpa armigera',         type: 'Moth',         season: 'Summer',            severity: 'high'   as const, crops: ['Cotton', 'Corn', 'Tomato'] },
+  { id: '47',  name: 'Whiteflies',                    scientific: 'Aleurothrixus floccosus',      type: 'Whitefly',     season: 'Year-round',        severity: 'high'   as const, crops: ['Tomato', 'Cucumber', 'Bean'] },
+  { id: '48',  name: 'Thrips',                        scientific: 'Thrips tabaci',                type: 'Thrips',       season: 'Summer',            severity: 'medium' as const, crops: ['Onion', 'Tomato', 'Pepper'] },
+  { id: '49',  name: 'Silverleaf Whitefly',           scientific: 'Bemisia tabaci',               type: 'Whitefly',     season: 'Year-round',        severity: 'high'   as const, crops: ['Cotton', 'Tomato', 'Vegetable'] },
+  { id: '50',  name: 'Melon Fly',                     scientific: 'Bactrocera cucurbitae',        type: 'Fly',          season: 'Summer',            severity: 'high'   as const, crops: ['Melon', 'Cucumber', 'Squash'] },
+  { id: '51',  name: 'Pickle Fruit Fly',              scientific: 'Bactrocera cucurbitae',        type: 'Fruit Fly',    season: 'Summer',            severity: 'medium' as const, crops: ['Melon', 'Pumpkin', 'Cucumber'] },
+  { id: '52',  name: 'Corn Leafhopper',               scientific: 'Dalbulus maidis',              type: 'Leafhopper',   season: 'Summer',            severity: 'medium' as const, crops: ['Corn', 'Sorghum'] },
+  { id: '53',  name: 'Corn Silk Fly',                 scientific: 'Euxesta notata',               type: 'Fly',          season: 'Silking',           severity: 'medium' as const, crops: ['Corn'] },
+  { id: '54',  name: 'Corn Earworm',                  scientific: 'Helicoverpa zea',              type: 'Moth',         season: 'Summer',            severity: 'high'   as const, crops: ['Corn', 'Tomato', 'Bean'] },
+  { id: '55',  name: 'Sorghum Midge',                 scientific: 'Contarinia sorghicola',        type: 'Midge',        season: 'Flowering',         severity: 'high'   as const, crops: ['Sorghum', 'Corn'] },
+  { id: '56',  name: 'Fall Armyworm',                 scientific: 'Spodoptera frugiperda',        type: 'Moth',         season: 'Summer-Fall',       severity: 'high'   as const, crops: ['Corn', 'Sorghum', 'Grass'] },
+  { id: '57',  name: 'Sugarcane Borer',               scientific: 'Diatraea saccharalis',         type: 'Moth',         season: 'Summer',            severity: 'high'   as const, crops: ['Sugarcane', 'Corn'] },
+  { id: '58',  name: 'Sugarcane Leafhopper',          scientific: 'Perkinsiella saccharicida',    type: 'Leafhopper',   season: 'Growing season',    severity: 'high'   as const, crops: ['Sugarcane'] },
+  { id: '59',  name: 'Sugarcane Scale',               scientific: 'Aulacaspis tegalensis',        type: 'Scale',        season: 'Year-round',        severity: 'medium' as const, crops: ['Sugarcane'] },
+  { id: '60',  name: 'Pineapple Mealybug',            scientific: 'Dysmicoccus brevipes',         type: 'Mealybug',     season: 'Year-round',        severity: 'high'   as const, crops: ['Pineapple', 'Sugar Cane'] },
+  { id: '61',  name: 'Coconut Scale',                 scientific: 'Aspidiotus destructor',        type: 'Scale',        season: 'Year-round',        severity: 'high'   as const, crops: ['Coconut', 'Date Palm'] },
+  { id: '62',  name: 'Coconut Leaf Beetle',           scientific: 'Promachanta albofascia',       type: 'Beetle',       season: 'Year-round',        severity: 'high'   as const, crops: ['Coconut'] },
+  { id: '63',  name: 'Banana Weevil',                 scientific: 'Cosmopolites sordidus',        type: 'Weevil',       season: 'Year-round',        severity: 'high'   as const, crops: ['Banana', 'Plantain'] },
+  { id: '64',  name: 'Banana Leaf Roller',            scientific: 'Chlumetia transversa',         type: 'Moth',         season: 'Year-round',        severity: 'medium' as const, crops: ['Banana', 'Plantain'] },
+  { id: '65',  name: 'Banana Fruit Fly',              scientific: 'Bactrocera dorsalis',          type: 'Fruit Fly',    season: 'Year-round',        severity: 'high'   as const, crops: ['Banana', 'Mango'] },
+  { id: '66',  name: 'Cassava Mite',                  scientific: 'Mononychellus tanajoa',        type: 'Mite',         season: 'Dry season',        severity: 'high'   as const, crops: ['Cassava'] },
+  { id: '67',  name: 'Cassava Green Mite',            scientific: 'Mononychellus progressivus',   type: 'Mite',         season: 'Dry season',        severity: 'high'   as const, crops: ['Cassava'] },
+  { id: '68',  name: 'Cassava Whitefly',              scientific: 'Aleurotrachelus socialis',     type: 'Whitefly',     season: 'Wet season',        severity: 'medium' as const, crops: ['Cassava'] },
+  { id: '69',  name: 'Potato Aphid',                  scientific: 'Macrosiphum euphorbiae',       type: 'Aphid',        season: 'Spring-Fall',       severity: 'medium' as const, crops: ['Potato', 'Tomato', 'Pepper'] },
+  { id: '70',  name: 'Colorado Potato Beetle',        scientific: 'Leptinotarsa decemlineata',    type: 'Beetle',       season: 'Spring-Summer',     severity: 'high'   as const, crops: ['Potato', 'Tomato', 'Eggplant'] },
+  { id: '71',  name: 'Potato Tuberworm',              scientific: 'Phthorimaea operculella',      type: 'Moth',         season: 'Year-round',        severity: 'high'   as const, crops: ['Potato', 'Tomato'] },
+  { id: '72',  name: 'Diamondback Moth',              scientific: 'Plutella xylostella',          type: 'Moth',         season: 'Spring-Fall',       severity: 'high'   as const, crops: ['Cabbage', 'Broccoli', 'Cauliflower'] },
+  { id: '73',  name: 'Cabbage Looper',                scientific: 'Trichoplusia ni',              type: 'Moth',         season: 'Spring-Fall',       severity: 'high'   as const, crops: ['Cabbage', 'Lettuce', 'Broccoli'] },
+  { id: '74',  name: 'Tomato Leafminer',              scientific: 'Liriomyza trifolii',           type: 'Fly',          season: 'Spring-Fall',       severity: 'medium' as const, crops: ['Tomato', 'Lettuce', 'Pepper'] },
+  { id: '75',  name: 'Tomato Hornworm',               scientific: 'Manduca quinquemaculata',      type: 'Moth',         season: 'Summer',            severity: 'high'   as const, crops: ['Tomato', 'Pepper', 'Tobacco'] },
+  { id: '76',  name: 'Tomato Pinworm',                scientific: 'Keiferia lycopersicella',      type: 'Moth',         season: 'Year-round',        severity: 'medium' as const, crops: ['Tomato', 'Pepper', 'Eggplant'] },
+  { id: '77',  name: 'Pepper Weevil',                 scientific: 'Anthonomus eugenii',           type: 'Weevil',       season: 'Flowering-Fruiting',severity: 'high'   as const, crops: ['Pepper', 'Eggplant', 'Tomato'] },
+  { id: '78',  name: 'Green Peach Aphid',             scientific: 'Myzus persicae',               type: 'Aphid',        season: 'Spring-Fall',       severity: 'high'   as const, crops: ['Peach', 'Potato', 'Vegetables'] },
+  { id: '79',  name: 'Pear Psylla',                   scientific: 'Cacopsylla pyricola',          type: 'Psyllid',      season: 'Spring-Fall',       severity: 'high'   as const, crops: ['Pear', 'Apple'] },
+  { id: '80',  name: 'Apple Leaf Miner',              scientific: 'Phyllonorycter elmaella',      type: 'Moth',         season: 'Spring-Summer',     severity: 'medium' as const, crops: ['Apple', 'Pear'] },
+  { id: '81',  name: 'Codling Moth',                  scientific: 'Cydia pomonella',              type: 'Moth',         season: 'Spring-Fall',       severity: 'high'   as const, crops: ['Apple', 'Pear', 'Walnut'] },
+  { id: '82',  name: 'Japanese Beetle',               scientific: 'Popillia japonica',            type: 'Beetle',       season: 'Summer',            severity: 'high'   as const, crops: ['Grape', 'Rose', 'Fruit trees'] },
+  { id: '83',  name: 'Grape Phylloxera',              scientific: 'Viteus vitifoliae',            type: 'Aphid',        season: 'Year-round',        severity: 'high'   as const, crops: ['Grape'] },
+  { id: '84',  name: 'Grape Powdery Mildew Mite',    scientific: 'Aceria vitis',                 type: 'Mite',         season: 'Spring-Summer',     severity: 'medium' as const, crops: ['Grape'] },
+  { id: '85',  name: 'Olive Fruit Fly',               scientific: 'Bactrocera oleae',             type: 'Fruit Fly',    season: 'Summer-Fall',       severity: 'high'   as const, crops: ['Olive'] },
+  { id: '86',  name: 'Mediterranean Fruit Fly',       scientific: 'Ceratitis capitata',           type: 'Fruit Fly',    season: 'Year-round',        severity: 'high'   as const, crops: ['Citrus', 'Mango', 'Peach'] },
+  { id: '87',  name: 'Russian Wheat Aphid',           scientific: 'Diuraphis noxia',              type: 'Aphid',        season: 'Spring',            severity: 'high'   as const, crops: ['Wheat', 'Barley', 'Rye'] },
+  { id: '88',  name: 'Hessian Fly',                   scientific: 'Mayetiola destructor',         type: 'Fly',          season: 'Spring-Fall',       severity: 'high'   as const, crops: ['Wheat', 'Barley', 'Rye'] },
+  { id: '89',  name: 'Chinch Bug',                    scientific: 'Blissus leucopterus',          type: 'Bug',          season: 'Spring-Summer',     severity: 'high'   as const, crops: ['Wheat', 'Corn', 'Sorghum'] },
+  { id: '90',  name: 'Frit Fly',                      scientific: 'Oscinella frit',               type: 'Fly',          season: 'Spring-Summer',     severity: 'medium' as const, crops: ['Wheat', 'Oats', 'Barley'] },
+  { id: '91',  name: 'Rice Hispa',                    scientific: 'Dicladispa armigera',          type: 'Beetle',       season: 'Summer',            severity: 'high'   as const, crops: ['Rice'] },
+  { id: '92',  name: 'Rice Thrips',                   scientific: 'Stenchaetothrips biformis',    type: 'Thrips',       season: 'Growing season',    severity: 'medium' as const, crops: ['Rice'] },
+  { id: '93',  name: 'Rice Mite',                     scientific: 'Steneotarsonemus spinki',      type: 'Mite',         season: 'Wet season',        severity: 'medium' as const, crops: ['Rice'] },
+  { id: '94',  name: 'Rice Skipper',                  scientific: 'Parnara phocides',             type: 'Butterfly',    season: 'Summer',            severity: 'low'    as const, crops: ['Rice'] },
+  { id: '95',  name: 'Rice Case Worm',                scientific: 'Chilo suppressalis',           type: 'Moth',         season: 'Summer',            severity: 'high'   as const, crops: ['Rice', 'Corn'] },
+  { id: '96',  name: 'Tea Mosquito Bug',              scientific: 'Helopeltis theivora',          type: 'Bug',          season: 'Year-round',        severity: 'high'   as const, crops: ['Tea', 'Cocoa', 'Cashew'] },
+  { id: '97',  name: 'Tea Tortrix Moth',              scientific: 'Adoxophyes sp',                type: 'Moth',         season: 'Year-round',        severity: 'high'   as const, crops: ['Tea'] },
+  { id: '98',  name: 'Coffee Berry Borer',            scientific: 'Hypothenemus hampei',          type: 'Beetle',       season: 'Year-round',        severity: 'high'   as const, crops: ['Coffee'] },
+  { id: '99',  name: 'Cocoa Pod Borer',               scientific: 'Conopomorpha cramerella',      type: 'Moth',         season: 'Year-round',        severity: 'high'   as const, crops: ['Cocoa'] },
+  { id: '100', name: 'Cashew Stem Borer',             scientific: 'Plocaederus ferrugineus',      type: 'Beetle',       season: 'Summer',            severity: 'high'   as const, crops: ['Cashew'] },
+  { id: '101', name: 'Areca Nut Beetle',              scientific: 'Apriona cinerea',              type: 'Beetle',       season: 'Year-round',        severity: 'high'   as const, crops: ['Areca Nut'] },
+  { id: '102', name: 'Black Citrus Aphid',            scientific: 'Toxoptera aurantii',           type: 'Aphid',        season: 'Spring',            severity: 'high'   as const, crops: ['Citrus', 'Tea'] },
+];
+
+export function generateRemainingPests(): PestInfo[] {
+  return detailedPestData.map(pest => ({
+    id: pest.id,
+    name: pest.name,
+    scientificName: pest.scientific,
+    type: pest.type,
+    severity: pest.severity,
+    season: pest.season,
+    description: `${pest.name} (${pest.scientific}) is a ${pest.severity} severity ${pest.type.toLowerCase()} that affects ${pest.crops.join(', ')}. Active during ${pest.season.toLowerCase()}.`,
+    damageSymptoms: [
+      'Feeding damage visible on leaves and stems',
+      'Reduced plant vigor and growth',
+      'Yield loss in severe infestations',
+      'Characteristic pest-specific damage patterns',
+    ],
+    cropAffected: pest.crops,
+    affectedCrops: pest.crops,
+    favourableConditions: `${pest.season} conditions with moderate temperatures favor population growth.`,
+    spreadMechanism: 'Natural dispersal and through infested plant material.',
+    emergencyThreshold: 'Consult local agricultural extension for specific thresholds.',
+    symptomsStages: {
+      early:    ['Minor feeding damage visible', 'Small pest colonies beginning', 'Initial plant stress symptoms'],
+      advanced: ['Extensive damage developing', 'Pest populations increasing', 'Visible crop stress'],
+      severe:   ['Severe damage causing significant yield loss', 'High pest population densities', 'Control measures required immediately'],
+    },
+    lifecycle: `Lifecycle includes egg, larval/nymphal, pupal, and adult stages. Duration varies with temperature and species.`,
+    naturalEnemies: ['Ladybird beetles', 'Lacewings', 'Parasitic wasps', 'Ground beetles', 'Spiders'],
+    resistanceRisk: pest.severity === 'high' ? 'medium' as const : 'low' as const,
+    treatments: [
+      {
+        name: 'Cultural Control',
+        type: 'cultural' as const,
+        description: 'Implement crop rotation, sanitation, and resistant varieties',
+        effectiveness: '65%',
+        cost: 'Low',
+        urgency: 'LOW URGENCY',
+        applicationMethod: 'Integrated cultural practices throughout the season',
+        timing: 'Ongoing throughout growing season',
+        harvesting: 'No restrictions',
+        culturalControlDetails: {
+          description: 'Combining multiple cultural practices significantly reduces pest populations.',
+          steps: [
+            'Monitor crops regularly for early pest detection',
+            'Implement 2-3 year crop rotation with non-host crops',
+            'Remove and destroy crop residues after harvest',
+            'Use certified clean planting material',
+            'Select resistant varieties where available',
+            'Maintain field hygiene and weed control',
+          ],
+          frequency: 'Ongoing - implement throughout the growing season',
+          equipment: ['Field monitoring tools', 'Record-keeping materials'],
+          results: '50-70% reduction in pest pressure with consistent cultural management',
+        },
+      },
+      {
+        name: 'Natural Enemy Release',
+        type: 'biological' as const,
+        description: 'Conserve and release natural enemies for biological pest control',
+        effectiveness: '70%',
+        cost: 'Moderate',
+        urgency: 'MEDIUM URGENCY',
+        applicationMethod: 'Release beneficial insects in affected fields',
+        timing: 'When pest populations first appear',
+        harvesting: 'No restrictions',
+        biologicalControlDetails: {
+          organism: 'Parasitic wasps, predatory beetles, and other natural enemies',
+          howToUse: 'Natural enemies parasitize or predate pest populations, providing sustainable control.',
+          releaseRate: 'Per supplier recommendations for specific pest and crop',
+          conditions: 'Optimal release conditions depend on the natural enemy species used',
+          effectiveness: '65-80% pest population reduction with proper establishment',
+          steps: [
+            'Monitor field for pest population levels and emergence timing',
+            'Obtain beneficial organisms from certified biological suppliers',
+            'Store organisms in cool, suitable conditions until release',
+            'Release organisms at recommended rates for your crop and region',
+            'Distribute releases evenly across affected field areas',
+            'Maintain optimal environmental conditions for organism establishment',
+            'Monitor parasitism or predation rates after release',
+            'Assess pest population reduction within 7-14 days',
+          ],
+        },
+      },
+      {
+        name: 'Chemical Treatment',
+        type: 'chemical' as const,
+        description: 'Apply approved pesticide when pest populations exceed economic threshold',
+        effectiveness: '85%',
+        cost: 'Moderate',
+        urgency: 'HIGH URGENCY',
+        mixingInstructions: 'Mix 200-500 ml/ha in 200-400 liters water',
+        applicationMethod: 'Foliar spray targeting pest populations',
+        dosage: '200-500 ml/ha',
+        precautions: [
+          'Wear protective clothing at all times',
+          'Avoid application near water bodies',
+          'Do not apply during pollination or harvest period',
+        ],
+        timing: 'When pest populations reach economic threshold',
+        harvesting: '14-21 day waiting period',
+        safetyWarning: 'Read and follow label instructions carefully. Toxic to aquatic organisms and beneficial insects.',
+        chemicalDetails: {
+          pesticidesRecommended: [
+            {
+              name: 'Consult local agricultural extension for approved products',
+              activeIngredient: 'See product label for active ingredients',
+              concentration: 'As specified on product label',
+            },
+          ],
+          applicationSteps: STANDARD_APP_STEPS,
+          protectiveEquipment: STANDARD_PPE,
+          dilutionRatio: '200-500 ml in 200-400 liters water per hectare',
+          sprayTiming: 'Apply when pest populations reach economic threshold',
+          weatherConditions: 'Calm weather (<5 km/h wind), temperature 15-30°C, no rain for 6 hours after application',
+        },
+      },
+    ],
+    preventionTips: [
+      'Monitor crops regularly for early pest detection',
+      'Use resistant varieties when available',
+      'Maintain field sanitation and cleanliness',
+      'Implement proper crop rotation',
+      'Conserve natural enemy populations',
+      'Avoid excessive pesticide use',
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1586003148644-c641c2879b39?w=400&h=300&fit=crop',
+    imageCredits: 'Photo for illustrative purposes',
+  }));
+}
+
+// ─── Combined pest list ───────────────────────────────────────────────────────
+export const ALL_PESTS: PestInfo[] = [
+  ...KNOWLEDGE_BASE,
+  ...generateRemainingPests(),
+];
+
+export { KNOWLEDGE_BASE as BASE_PESTS };
+
+// ─── Helper functions ─────────────────────────────────────────────────────────
+export const getPestById = (id: string): PestInfo | undefined =>
+  ALL_PESTS.find(p => p.id === id);
+
 export const getPestByName = (name: string): PestInfo | undefined => {
-  const normalizedSearch = name.toLowerCase().trim();
-  return ALL_PESTS.find(pest => 
-    pest.name.toLowerCase().includes(normalizedSearch) ||
-    pest.scientificName.toLowerCase().includes(normalizedSearch)
+  const q = name.toLowerCase().trim();
+  return ALL_PESTS.find(p =>
+    p.name.toLowerCase().includes(q) ||
+    p.scientificName.toLowerCase().includes(q),
   );
 };
 
 export const getPestsByCrop = (crop: string): PestInfo[] => {
-  return ALL_PESTS.filter(pest => 
-    pest.cropAffected.some(c => c.toLowerCase() === crop.toLowerCase())
-  );
+  const c = crop.toLowerCase();
+  return ALL_PESTS.filter(p => {
+    const crops = Array.isArray(p.cropAffected) ? p.cropAffected : [p.cropAffected];
+    return crops.some(cr => cr.toLowerCase() === c);
+  });
 };
 
-export const getPestsBySeverity = (severity: 'low' | 'medium' | 'high'): PestInfo[] => {
-  return ALL_PESTS.filter(pest => pest.severity === severity);
-};
+export const getPestsBySeverity = (severity: 'low' | 'medium' | 'high'): PestInfo[] =>
+  ALL_PESTS.filter(p => p.severity === severity);
 
-// New helper functions
 export const getPestsBySeason = (season: string): PestInfo[] => {
-  return ALL_PESTS.filter(pest => 
-    pest.season.toLowerCase().includes(season.toLowerCase())
-  );
+  const s = season.toLowerCase();
+  return ALL_PESTS.filter(p => p.season.toLowerCase().includes(s));
 };
 
-export const validatePestData = (pest: PestInfo): boolean => {
-  return !!(pest.id && pest.name && pest.type && pest.severity && 
-    pest.treatments.length > 0 && pest.cropAffected.length > 0);
-};
+export const validatePestData = (pest: PestInfo): boolean =>
+  !!(pest.id && pest.name && pest.type && pest.severity &&
+     pest.treatments.length > 0 &&
+     (Array.isArray(pest.cropAffected) ? pest.cropAffected.length > 0 : pest.cropAffected));
 
-export const getPestsByResistanceRisk = (risk: 'low' | 'medium' | 'high'): PestInfo[] => {
-  return ALL_PESTS.filter(pest => pest.resistanceRisk === risk);
-};
+export const getPestsByResistanceRisk = (risk: 'low' | 'medium' | 'high'): PestInfo[] =>
+  ALL_PESTS.filter(p => p.resistanceRisk === risk);
 
-// Statistics function
-export const getPestStatistics = () => {
-  return {
-    total: ALL_PESTS.length,
-    bySeverity: {
-      low: ALL_PESTS.filter(p => p.severity === 'low').length,
-      medium: ALL_PESTS.filter(p => p.severity === 'medium').length,
-      high: ALL_PESTS.filter(p => p.severity === 'high').length
-    },
-    byType: ALL_PESTS.reduce((acc, pest) => {
-      acc[pest.type] = (acc[pest.type] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>),
-    byCrop: ALL_PESTS.reduce((acc, pest) => {
-      pest.cropAffected.forEach(crop => {
-        acc[crop] = (acc[crop] || 0) + 1;
-      });
-      return acc;
-    }, {} as Record<string, number>)
-  };
-};
-export const EMERGENCY_CONTACTS = {
-  national: {
-    name: "Environmental Management Agency (EMA)",
-    phone: "086-770-044-4",
-    hours: "24/7",
-    tollFree: "0800-8000"
+export const getPestStatistics = () => ({
+  total: ALL_PESTS.length,
+  bySeverity: {
+    low:    ALL_PESTS.filter(p => p.severity === 'low').length,
+    medium: ALL_PESTS.filter(p => p.severity === 'medium').length,
+    high:   ALL_PESTS.filter(p => p.severity === 'high').length,
   },
-  local: {
-    name: "City Council Pest Control",
-    phone: "+263-242-758-980",
-    hours: "24/7 Emergency"
-  },
-  poison: {
-    name: "Poison Control Centre - Parirenyatwa Hospital",
-    phone: "+263-4-706-021",
-    hours: "24/7",
-    emergency: "+263-712-111-222"
-  },
-  pestControl: {
-    name: "Pest Control Association of Zimbabwe",
-    phone: "+263-242-250-493",
-    hours: "08:00 - 16:30"
-  },
-  ambulance: {
-    name: "Emergency Medical Services",
-    phone: "111",
-    hours: "24/7"
-  },
-  police: {
-    name: "Zimbabwe Republic Police",
-    phone: "112",
-    hours: "24/7"
-  },
-  fire: {
-    name: "Fire Brigade",
-    phone: "113",
-    hours: "24/7"
-  }
-};
+  byType: ALL_PESTS.reduce<Record<string, number>>((acc, p) => {
+    acc[p.type] = (acc[p.type] || 0) + 1;
+    return acc;
+  }, {}),
+  byCrop: ALL_PESTS.reduce<Record<string, number>>((acc, p) => {
+    const crops = Array.isArray(p.cropAffected) ? p.cropAffected : [p.cropAffected];
+    crops.forEach(c => { acc[c] = (acc[c] || 0) + 1; });
+    return acc;
+  }, {}),
+});

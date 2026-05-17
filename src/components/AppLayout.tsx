@@ -1,17 +1,19 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { getAllPestSightings, recordPestHistory } from '@/lib/api';
 import Navigation, { type TabId } from './pest/Navigation';
-import HeroSection from './pest/HeroSection';
-import PestScanner from './pest/PestScanner';
-import PestMap from './pest/PestMap';
-import PestHistory from './pest/PestHistory';
-import KnowledgeBase from './pest/KnowledgeBase';
-import EmergencyModal from './pest/EmergencyModal';
-import AuthModal from './pest/AuthModal';
-import ProfileModal from './pest/ProfileModal';
 import Footer from './pest/Footer';
+import LoadingProgressBar from '@/components/LoadingProgressBar';
 import type { PestReport } from '@/data/pestData';
 import { getStoredSession, verifySession, logout as doLogout, type User, type FarmerProfile } from '@/lib/auth';
+
+const HeroSection = lazy(() => import('./pest/HeroSection'));
+const PestScanner = lazy(() => import('./pest/PestScanner'));
+const PestMap = lazy(() => import('./pest/PestMap'));
+const PestHistory = lazy(() => import('./pest/PestHistory'));
+const KnowledgeBase = lazy(() => import('./pest/KnowledgeBase'));
+const EmergencyModal = lazy(() => import('./pest/EmergencyModal'));
+const AuthModal = lazy(() => import('./pest/AuthModal'));
+const ProfileModal = lazy(() => import('./pest/ProfileModal'));
 
 const AppLayout: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabId>('home');
@@ -55,10 +57,10 @@ const AppLayout: React.FC = () => {
           confidence: 85, // Default confidence since backend doesn't store this
           crop_affected: item.pest_type || 'Unknown',
           severity: item.severity,
-          latitude: parseFloat(item.latitude) || -17.8292,
-          longitude: parseFloat(item.longitude) || 31.0522,
+          latitude: item.latitude ? parseFloat(item.latitude) : undefined,
+          longitude: item.longitude ? parseFloat(item.longitude) : undefined,
           location_name: item.location || 'Not specified',
-          province: 'Not specified',
+          province: item.province || 'Not specified',
           description: item.description,
           image_url: item.image_url,
           status: 'active', // Default status
@@ -131,7 +133,13 @@ const AppLayout: React.FC = () => {
     .slice(0, 8);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background dark:bg-background">
+      <LoadingProgressBar
+        message="Fetching pest reports..."
+        isLoading={reportsLoading}
+        fullScreen={reportsLoading}
+      />
+      
       <Navigation
         activeTab={activeTab}
         onTabChange={handleTabChange}
@@ -144,32 +152,45 @@ const AppLayout: React.FC = () => {
       />
 
       <main className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
-        {activeTab === 'home' && (
-          <HeroSection onTabChange={handleTabChange} stats={stats} recentAlerts={recentAlerts} />
-        )}
-        {activeTab === 'scan' && (
-          <PestScanner onReportSaved={fetchReports} userId={user?.id || null} onSignInRequired={() => setAuthOpen(true)} />
-        )}
-        {activeTab === 'map' && (
-          <PestMap reports={reports} loading={reportsLoading} />
-        )}
-        {activeTab === 'history' && (
-          <PestHistory reports={reports} loading={reportsLoading} onRateEffectiveness={handleRateEffectiveness} userId={user?.id ? String(user.id) : null} />
-        )}
-        {activeTab === 'resources' && <KnowledgeBase />}
+        <Suspense fallback={<div className="py-16"><LoadingProgressBar message="Loading view..." isLoading={true} fullScreen={false} /></div>}>
+          {activeTab === 'home' && (
+            <HeroSection onTabChange={handleTabChange} stats={stats} recentAlerts={recentAlerts} />
+          )}
+          {activeTab === 'scan' && (
+            <PestScanner onReportSaved={fetchReports} userId={user?.id || null} onSignInRequired={() => setAuthOpen(true)} />
+          )}
+          {activeTab === 'map' && (
+            <PestMap
+              reports={reports}
+              loading={reportsLoading}
+              profile={profile}
+              currentUserEmail={user?.email || null}
+            />
+          )}
+          {activeTab === 'history' && (
+            <PestHistory reports={reports} loading={reportsLoading} onRateEffectiveness={handleRateEffectiveness} userId={user?.id ? String(user.id) : null} />
+          )}
+          {activeTab === 'resources' && <KnowledgeBase />}
+        </Suspense>
       </main>
 
       <Footer onTabChange={handleTabChange} />
 
-      <EmergencyModal isOpen={emergencyOpen} onClose={() => setEmergencyOpen(false)} />
-      <AuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} onAuthSuccess={handleAuthSuccess} />
-      <ProfileModal
-        isOpen={profileOpen}
-        onClose={() => setProfileOpen(false)}
-        profile={profile}
-        sessionToken={sessionToken}
-        onProfileUpdated={(p) => setProfile(p)}
-      />
+      <Suspense fallback={null}>
+        <EmergencyModal isOpen={emergencyOpen} onClose={() => setEmergencyOpen(false)} />
+      </Suspense>
+      <Suspense fallback={null}>
+        <AuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} onAuthSuccess={handleAuthSuccess} />
+      </Suspense>
+      <Suspense fallback={null}>
+        <ProfileModal
+          isOpen={profileOpen}
+          onClose={() => setProfileOpen(false)}
+          profile={profile}
+          sessionToken={sessionToken}
+          onProfileUpdated={(p) => setProfile(p)}
+        />
+      </Suspense>
     </div>
   );
 };

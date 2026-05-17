@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, User, MapPin, Phone, Loader2, CheckCircle, Sprout, Save } from 'lucide-react';
+import { X, User, MapPin, Phone, CheckCircle, Sprout, Save } from 'lucide-react';
 import { updateProfile, type FarmerProfile } from '@/lib/auth';
 import { PROVINCES, CROP_TYPES } from '@/data/pestData';
 
@@ -186,7 +186,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, profile, s
             disabled={loading || !fullName.trim()}
             className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 transition-all shadow-lg shadow-green-200"
           >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-4 h-4" />}
+            <Save className={loading ? 'w-5 h-5' : 'w-4 h-4'} />
             {loading ? 'Saving...' : 'Save Changes'}
           </button>
         </form>

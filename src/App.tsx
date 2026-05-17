@@ -1,12 +1,14 @@
-﻿import React from 'react';
-import AppLayout from './components/AppLayout';
+﻿import AppLayout from './components/AppLayout';
+import { ThemeProvider } from './components/theme-provider';
 import './index.css';
 
 function App() {
   return (
-    <div className="App">
-      <AppLayout />
-    </div>
+    <ThemeProvider defaultTheme="light">
+      <div className="App">
+        <AppLayout />
+      </div>
+    </ThemeProvider>
   );
 }
 

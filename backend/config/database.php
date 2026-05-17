@@ -13,22 +13,17 @@ if (file_exists($envFile)) {
     }
 }
 
-define('DB_HOST', 'localhost');
-define('DB_USER', 'root');
-define('DB_PASS', '');
-define('DB_NAME', 'pestguard');
-define('DB_PORT', 3306);
+define('DB_HOST', getenv('DB_HOST') ?: '127.0.0.1');
+define('DB_USER', getenv('DB_USER') ?: 'root');
+define('DB_PASS', getenv('DB_PASS') ?: '');
+define('DB_NAME', getenv('DB_NAME') ?: 'pestguard');
+define('DB_PORT', getenv('DB_PORT') ?: 3306);
 
-// Create connection
 $mysqli = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME, DB_PORT);
-
-// Check connection
 if ($mysqli->connect_error) {
     http_response_code(500);
     die(json_encode(['error' => 'Database connection failed: ' . $mysqli->connect_error]));
 }
-
-// Set charset to utf8mb4
 $mysqli->set_charset('utf8mb4');
 
 function getDB() {
@@ -37,14 +32,10 @@ function getDB() {
 }
 
 // Enable error reporting for development
-ini_set('display_errors', 1);
 error_reporting(E_ALL);
-
-// CORS headers
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
-header('Content-Type: application/json; charset=utf-8');
+ini_set('display_errors', 0); // Don't display errors in output
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/../logs/php_errors.log');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);

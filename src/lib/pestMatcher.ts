@@ -1,4 +1,4 @@
-import { KNOWLEDGE_BASE, type PestInfo } from '@/data/pestData';
+import { ALL_PESTS, type PestInfo } from '@/data/pestData';
 
 export type MatchType = 'exact' | 'normalized-contains' | 'scientific-contains' | 'none';
 
@@ -57,7 +57,7 @@ export function matchPestToKnowledgeBase(label: string, confidence: number): Mat
   let bestScore = -1;
   let bestType: MatchType = 'none';
 
-  for (const pest of KNOWLEDGE_BASE) {
+  for (const pest of ALL_PESTS) {
     const { score, matchType } = scoreFor(labelNorm, pest);
     if (score > bestScore) {
       bestScore = score;
@@ -86,7 +86,7 @@ export function getFallbackPestData(label: string, confidence: number): PestInfo
   let best: PestInfo = KNOWLEDGE_BASE[0];
   let bestScore = -1;
 
-  for (const pest of KNOWLEDGE_BASE) {
+  for (const pest of ALL_PESTS) {
     const { score } = scoreFor(labelNorm, pest);
     if (score > bestScore) {
       bestScore = score;
@@ -94,12 +94,11 @@ export function getFallbackPestData(label: string, confidence: number): PestInfo
     }
   }
 
-  if (bestScore <= 0) return KNOWLEDGE_BASE[0];
+  if (bestScore <= 0) return ALL_PESTS[0];
 
   return best;
 }
 
-// Included for the API requested by your task description.
-export const ALL_PESTS = KNOWLEDGE_BASE;
+export { ALL_PESTS };
 
 

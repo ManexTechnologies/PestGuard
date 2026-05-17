@@ -1,4 +1,4 @@
-import { login as apiLogin, signup as apiSignup, logout as apiLogout, getPestHistory } from './api';
+﻿import { login as apiLogin, signup as apiSignup, logout as apiLogout, getPestHistory } from './api';
 
 export interface User {
   id: number;
@@ -25,6 +25,7 @@ export interface AuthState {
 }
 
 const SESSION_KEY = 'pestguard_session';
+const API_BASE_URL = 'http://localhost/pestguard/backend/api';
 
 function storeSession(token: string) {
   try {
@@ -80,11 +81,9 @@ export async function signup(params: {
     throw new Error(result?.error || 'Signup failed');
   }
 
-  // The backend returns user_id, but we need to construct user and profile objects
-  // For now, we'll create a minimal user object and fetch profile separately
   const user = { id: result.user_id, email: result.email || '' };
   const profile = {
-    id: result.user_id, // Temporary, will be updated when profile is fetched
+    id: result.user_id,
     user_id: result.user_id,
     full_name: fullName,
     farm_name: farmName || null,
@@ -113,18 +112,16 @@ export async function login(
     throw new Error('Email and password are required');
   }
 
-  const result = await apiLogin({ email, password });
+  const result = await apiLogin(email, password);
   if (!result || !result.success) {
     throw new Error(result?.error || 'Login failed');
   }
 
-  // The backend returns user_id and email, but we need to construct user and profile objects
-  // For now, we'll create a minimal user object and fetch profile separately
   const user = { id: result.user_id, email: result.email };
   const profile = {
-    id: result.user_id, // Temporary, will be updated when profile is fetched
+    id: result.user_id,
     user_id: result.user_id,
-    full_name: '', // Will be updated when profile is fetched
+    full_name: '',
     farm_name: null,
     farm_location: null,
     province: null,
@@ -143,21 +140,24 @@ export async function login(
   };
 }
 
+async function safeJson(response: Response): Promise<any> {
+  const text = await response.text();
+  if (!text) {
+    return null;
+  }
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    console.error('Invalid JSON response', { status: response.status, text });
+    return null;
+  }
+}
+
 export async function verifySession(token: string): Promise<{ user: User; profile: FarmerProfile } | null> {
   if (!token) return null;
 
   try {
-    // Decode the token to get user info
-    const decoded = atob(token);
-    const tokenData = JSON.parse(decoded);
-    
-    if (!tokenData || !tokenData.user_id) {
-      clearSession();
-      return null;
-    }
-
-    // Call backend to verify and get full user/profile data
-    const result = await fetch((import.meta as any).env.VITE_API_URL + '/auth.php/verify-session', {
+    const result = await fetch(API_BASE_URL + '/auth.php/verify-session', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -170,7 +170,11 @@ export async function verifySession(token: string): Promise<{ user: User; profil
       return null;
     }
     
-    const data = await result.json();
+    const data = await safeJson(result);
+    if (!data) {
+      clearSession();
+      return null;
+    }
     return data as { user: User; profile: FarmerProfile };
   } catch (error) {
     clearSession();
@@ -182,7 +186,7 @@ export async function updateProfile(
   token: string,
   updates: Partial<Omit<FarmerProfile, 'id' | 'user_id' | 'created_at' | 'updated_at'>>
 ): Promise<FarmerProfile> {
-  const response = await fetch((import.meta as any).env.VITE_API_URL + '/auth.php/update-profile', {
+  const response = await fetch(API_BASE_URL + '/auth.php/update-profile', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -192,15 +196,22 @@ export async function updateProfile(
   });
 
   if (!response.ok) {
-    const err = await response.json();
-    throw new Error(err.error || 'Profile update failed');
+    const err = await safeJson(response);
+    throw new Error(err?.error || 'Profile update failed');
   }
 
-  const updated = await response.json();
+  const updated = await safeJson(response);
+  if (!updated) {
+    throw new Error('Profile update failed: empty response');
+  }
   return updated as FarmerProfile;
 }
 
 export async function logout(token: string | null) {
   clearSession();
-  await apiLogout();
+  try {
+    await apiLogout();
+  } catch (error) {
+    console.error('Logout error:', error);
+  }
 }

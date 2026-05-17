@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Mail, Lock, User, MapPin, Phone, Loader2, Eye, EyeOff, CheckCircle, Bug, AlertTriangle } from 'lucide-react';
+import { X, Mail, Lock, User, MapPin, Phone, Eye, EyeOff, CheckCircle, Bug, AlertTriangle } from 'lucide-react';
 import { signup, login, type User as AuthUser, type FarmerProfile } from '@/lib/auth';
 import { PROVINCES, CROP_TYPES } from '@/data/pestData';
 
@@ -215,7 +215,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuccess })
                 disabled={loading}
                 className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 transition-all shadow-lg shadow-green-200"
               >
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Lock className="w-4 h-4" />}
+                <Lock className={loading ? 'w-5 h-5' : 'w-4 h-4'} />
                 {loading ? 'Signing in...' : 'Sign In'}
               </button>
             </form>
@@ -383,7 +383,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuccess })
                 disabled={loading}
                 className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 transition-all shadow-lg shadow-green-200"
               >
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                <CheckCircle className={loading ? 'w-5 h-5' : 'w-4 h-4'} />
                 {loading ? 'Creating Account...' : 'Create Account'}
               </button>
             </form>

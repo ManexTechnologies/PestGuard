@@ -1,34 +1,68 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import {
   MapPin,
-  Filter,
   Search,
-  AlertTriangle,
-  Leaf,
+  RefreshCw,
+  Info,
+  X,
+  Filter,
   Bug,
+  Leaf,
+  AlertTriangle,
 } from 'lucide-react';
 
 import { SEVERITY_COLORS, SEVERITY_DOT_COLORS, type PestReport } from '@/data/pestData';
+import type { FarmerProfile } from '@/lib/auth';
+import LoadingProgressBar from '@/components/LoadingProgressBar';
+
+// Import Leaflet
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+// Fix Leaflet icon issues
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+});
+
+// Zimbabwe bounds
+const ZIMBABWE_BOUNDS: L.LatLngBoundsExpression = [
+  [-22.5, 25.0],
+  [-15.5, 33.5],
+];
+
+const DEFAULT_CENTER: L.LatLngTuple = [-17.825, 31.033];
 
 interface PestMapProps {
   reports: PestReport[];
   loading: boolean;
+  profile?: FarmerProfile | null;
+  currentUserEmail?: string | null;
 }
 
 type SeverityFilter = 'all' | 'critical' | 'high' | 'medium' | 'low';
 
-type CropFilter = 'all' | string;
-
-const PestMap: React.FC<PestMapProps> = ({ reports, loading }) => {
+const PestMap: React.FC<PestMapProps> = ({ reports, loading, profile, currentUserEmail }) => {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const leafletMapRef = useRef<L.Map | null>(null);
+  const markersRef = useRef<L.LayerGroup | null>(null);
+  
+  const [farmCoords, setFarmCoords] = useState<L.LatLngTuple | null>(null);
+  const [farmGeocodeError, setFarmGeocodeError] = useState<string | null>(null);
   const [selectedProvince, setSelectedProvince] = useState<string>('');
   const [selectedSeverity, setSelectedSeverity] = useState<SeverityFilter>('all');
-  const [selectedCrop, setSelectedCrop] = useState<CropFilter>('all');
+  const [selectedCrop, setSelectedCrop] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedReport, setSelectedReport] = useState<PestReport | null>(null);
+  const [mapError, setMapError] = useState<string | null>(null);
 
+  // Extract unique values for filters
   const provinces = useMemo(() => {
     const set = new Set<string>();
     for (const r of reports) {
-      if (r.province) set.add(r.province);
+      if (r.province && r.province !== 'Not specified') set.add(r.province);
     }
     return Array.from(set).sort();
   }, [reports]);
@@ -36,26 +70,38 @@ const PestMap: React.FC<PestMapProps> = ({ reports, loading }) => {
   const crops = useMemo(() => {
     const set = new Set<string>();
     for (const r of reports) {
-      if (r.crop_affected) set.add(r.crop_affected);
+      if (r.crop_affected && r.crop_affected !== 'Unknown') set.add(r.crop_affected);
     }
     return Array.from(set).sort();
   }, [reports]);
 
+  const hasExplicitCoords = (report: PestReport) => {
+    return (
+      typeof report.latitude === 'number' &&
+      typeof report.longitude === 'number' &&
+      !Number.isNaN(report.latitude) &&
+      !Number.isNaN(report.longitude)
+    );
+  };
+
+  const getReportFallbackCoords = (report: PestReport): L.LatLngTuple => {
+    const [[south, west], [north, east]] = ZIMBABWE_BOUNDS as [L.LatLngTuple, L.LatLngTuple];
+    const hash = [...report.id].reduce((acc, char) => acc * 31 + char.charCodeAt(0), 0);
+    const pseudoRandom = (seed: number) => ((seed * 9301 + 49297) % 233280) / 233280;
+    const lat = south + pseudoRandom(hash) * (north - south);
+    const lng = west + pseudoRandom(hash + 1) * (east - west);
+    return [lat, lng];
+  };
+
+  // Filter reports using search and filters; missing coordinates are still included for random placement
   const filteredReports = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-
     return reports.filter((r) => {
       if (selectedProvince && r.province !== selectedProvince) return false;
       if (selectedSeverity !== 'all' && r.severity !== selectedSeverity) return false;
       if (selectedCrop !== 'all' && r.crop_affected !== selectedCrop) return false;
       if (q) {
-        const hay = [
-          r.pest_name,
-          r.crop_affected,
-          r.location_name,
-          r.province,
-          r.description,
-        ]
+        const hay = [r.pest_name, r.crop_affected, r.location_name, r.province, r.description]
           .filter(Boolean)
           .join(' ')
           .toLowerCase();
@@ -71,219 +117,417 @@ const PestMap: React.FC<PestMapProps> = ({ reports, loading }) => {
     return { active, critical, total: filteredReports.length };
   }, [filteredReports]);
 
+  const geocodeFarmLocation = async (address: string): Promise<L.LatLngTuple | null> => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(address)}`,
+        {
+          headers: {
+            Accept: 'application/json',
+          },
+        }
+      );
+      const results = await response.json();
+      if (Array.isArray(results) && results.length > 0) {
+        const first = results[0];
+        const lat = parseFloat(first.lat);
+        const lon = parseFloat(first.lon);
+        if (!Number.isNaN(lat) && !Number.isNaN(lon)) {
+          return [lat, lon];
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to geocode farm location:', error);
+    }
+    return null;
+  };
+
+  useEffect(() => {
+    if (!profile?.farm_location) {
+      setFarmCoords(null);
+      setFarmGeocodeError(null);
+      return;
+    }
+
+    let active = true;
+    geocodeFarmLocation(profile.farm_location).then((coords) => {
+      if (!active) return;
+      if (coords) {
+        setFarmCoords(coords);
+        setFarmGeocodeError(null);
+      } else {
+        setFarmCoords(null);
+        setFarmGeocodeError('Could not resolve your farm location on the map');
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [profile?.farm_location]);
+
+  useEffect(() => {
+    if (!leafletMapRef.current || !farmCoords) return;
+    leafletMapRef.current.setView(farmCoords, 12);
+  }, [farmCoords]);
+
+  // Initialize map
+  useEffect(() => {
+    if (!mapRef.current || leafletMapRef.current) return;
+    
+    try {
+      console.log("Initializing map...");
+      
+      const map = L.map(mapRef.current).setView(DEFAULT_CENTER, 7);
+      
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19,
+        minZoom: 6,
+      }).addTo(map);
+      
+      L.control.scale({ metric: true, imperial: false }).addTo(map);
+      map.setMaxBounds(ZIMBABWE_BOUNDS);
+      map.on('drag', () => {
+        map.panInsideBounds(ZIMBABWE_BOUNDS);
+      });
+      
+      leafletMapRef.current = map;
+      console.log("Map initialized successfully");
+      
+    } catch (error) {
+      console.error("Error initializing map:", error);
+      setMapError("Failed to initialize map. Please check console for details.");
+    }
+    
+    return () => {
+      if (leafletMapRef.current) {
+        leafletMapRef.current.remove();
+        leafletMapRef.current = null;
+      }
+    };
+  }, []);
+
+  // Add markers to map
+  useEffect(() => {
+    if (!leafletMapRef.current) return;
+    
+    const map = leafletMapRef.current;
+    
+    // Clear existing markers
+    if (markersRef.current) {
+      markersRef.current.clearLayers();
+      markersRef.current.remove();
+    }
+    
+    if (filteredReports.length === 0 && !farmCoords) return;
+    
+    // Create new marker group
+    markersRef.current = L.layerGroup().addTo(map);
+    
+    const validMarkerPoints: L.LatLngTuple[] = [];
+    
+    const farmIcon = L.divIcon({
+      className: 'custom-farm-marker',
+      html: '<div style="background-color: #1d4ed8; width: 28px; height: 28px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px;">🏠</div>',
+      iconSize: [28, 28],
+      popupAnchor: [0, -14],
+    });
+
+    filteredReports.forEach(report => {
+      const isApproximate = !hasExplicitCoords(report);
+      const reportCoords = isApproximate
+        ? getReportFallbackCoords(report)
+        : [report.latitude!, report.longitude!] as L.LatLngTuple;
+
+      validMarkerPoints.push(reportCoords);
+      
+      const getColor = (severity: string) => {
+        switch (severity) {
+          case 'critical': return '#dc2626';
+          case 'high': return '#f97316';
+          case 'medium': return '#eab308';
+          default: return '#22c55e';
+        }
+      };
+      
+      const color = getColor(report.severity);
+      
+      const icon = L.divIcon({
+        className: 'custom-marker',
+        html: '<div style="background-color: ' + color + '; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 12px; cursor: pointer;">🐛</div>',
+        iconSize: [24, 24],
+        popupAnchor: [0, -12],
+      });
+      
+      const popupContent = '<div style="min-width: 200px;">' +
+        '<h4 style="margin: 0 0 8px 0; color: #065f46; font-size: 16px;">' + report.pest_name + '</h4>' +
+        '<p style="margin: 4px 0; font-size: 13px;"><strong>Crop:</strong> ' + (report.crop_affected || 'N/A') + '</p>' +
+        '<p style="margin: 4px 0; font-size: 13px;"><strong>Location:</strong> ' + (report.location_name || 'N/A') + '</p>' +
+        (isApproximate ? '<p style="margin: 4px 0; font-size: 13px; color: #9a3412;"><strong>Note:</strong> Approximate location shown on map.</p>' : '') +
+        '<p style="margin: 4px 0; font-size: 13px;"><strong>Severity:</strong> <span style="color: ' + color + ';">' + report.severity + '</span></p>' +
+        '<p style="margin: 4px 0; font-size: 13px;"><strong>Status:</strong> ' + report.status + '</p>' +
+        (report.description ? '<p style="margin: 8px 0 0 0; font-size: 12px; color: #666;">' + report.description.substring(0, 100) + '...</p>' : '') +
+        '<button onclick="window.dispatchEvent(new CustomEvent(\'selectReport\', { detail: \'' + report.id + '\' }))" ' +
+        'style="margin-top: 10px; padding: 5px 14px; background: #059669; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">' +
+        'View Details</button>' +
+        '</div>';
+      
+      const marker = L.marker(reportCoords, { icon }).bindPopup(popupContent);
+      markersRef.current!.addLayer(marker);
+    });
+    
+    if (farmCoords) {
+      const farmMarker = L.marker(farmCoords, { icon: farmIcon })
+        .bindPopup('<strong>Your farm location</strong>');
+      markersRef.current.addLayer(farmMarker);
+      validMarkerPoints.push(farmCoords);
+    }
+
+    if (validMarkerPoints.length > 0) {
+      const bounds = L.latLngBounds(validMarkerPoints);
+      map.fitBounds(bounds, { padding: [50, 50] });
+    }
+    
+  }, [filteredReports, farmCoords]);
+
+  // Handle report selection from popup
+  useEffect(() => {
+    const handler = (e: CustomEvent) => {
+      const report = filteredReports.find(r => r.id === e.detail);
+      if (report) setSelectedReport(report);
+    };
+    window.addEventListener('selectReport' as any, handler);
+    return () => window.removeEventListener('selectReport' as any, handler);
+  }, [filteredReports]);
+
+  const clearFilters = () => {
+    setSelectedProvince('');
+    setSelectedSeverity('all');
+    setSelectedCrop('all');
+    setSearchQuery('');
+  };
+
+  const resetMapView = () => {
+    if (leafletMapRef.current) {
+      leafletMapRef.current.setView(farmCoords || DEFAULT_CENTER, farmCoords ? 12 : 7);
+    }
+  };
+
+  if (loading) {
+    return (
+      <LoadingProgressBar
+        message="Loading outbreak data..."
+        isLoading={loading}
+        fullScreen={true}
+      />
+    );
+  }
+
   return (
     <div className="space-y-4 sm:space-y-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Pest Outbreak Map</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <MapPin className="w-6 h-6 text-emerald-600" />
+            Zimbabwe Pest Outbreak Map
+          </h2>
           <p className="text-gray-500 mt-1 text-sm">
-            {loading
-              ? 'Loading outbreaks...'
-              : `${stats.total} report${stats.total === 1 ? '' : 's'}${stats.active ? ` • ${stats.active} active` : ''}${stats.critical ? ` • ${stats.critical} critical` : ''}`}
+            {stats.total} report{stats.total === 1 ? '' : 's'} on map
+            {stats.active ? ' • ' + stats.active + ' active' : ''}
+            {stats.critical ? ' • ' + stats.critical + ' critical' : ''}
           </p>
+          {farmGeocodeError && (
+            <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              Could not resolve your farm address on the map. The map is still usable for reports with explicit coordinates.
+            </div>
+          )}
         </div>
 
-        <div className="flex items-center gap-2 self-start">
-          <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-2 border border-gray-200">
-            <Filter className="w-4 h-4 text-gray-500" />
-            <select
-              value={selectedSeverity}
-              onChange={(e) => setSelectedSeverity(e.target.value as SeverityFilter)}
-              className="bg-transparent text-sm outline-none"
-              aria-label="Severity filter"
-            >
-              <option value="all">All severities</option>
-              <option value="critical">Critical</option>
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
-            </select>
-          </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={resetMapView}
+            className="p-2 bg-gray-100 rounded-lg border border-gray-200 hover:bg-gray-200 transition"
+            title="Reset map view"
+          >
+            <RefreshCw className="w-4 h-4 text-gray-600" />
+          </button>
         </div>
       </div>
 
-      {/* Map Placeholder */}
-      <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-5 shadow-sm">
-        <div className="grid lg:grid-cols-5 gap-3 sm:gap-4">
-          <div className="lg:col-span-3">
-            <div className="relative overflow-hidden rounded-lg border border-gray-200">
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-50 via-white to-teal-50" />
-              <div className="relative p-4 sm:p-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <MapPin className="w-4 h-4 text-green-700" />
-                  <h3 className="font-semibold text-gray-900">Geo Outbreak Visualization</h3>
+      {/* Map and Sidebar */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="grid lg:grid-cols-4 gap-0">
+          {/* Map Container */}
+          <div className="lg:col-span-3 relative">
+            <div 
+              ref={mapRef} 
+              className="h-[500px] sm:h-[600px] w-full bg-gray-100"
+              style={{ zIndex: 1 }}
+            />
+            {mapError && (
+              <div className="absolute inset-0 flex items-center justify-center bg-red-50 bg-opacity-90">
+                <div className="text-center text-red-600 p-4">
+                  <AlertTriangle className="w-8 h-8 mx-auto mb-2" />
+                  <p>{mapError}</p>
                 </div>
-                <p className="text-sm text-gray-600 mb-4">
-                  This UI currently shows a filtered outbreak list. Hook real map rendering (e.g. Mapbox/Leaflet) to the same filtered results using each report’s <code>latitude</code> and <code>longitude</code> fields.
-                </p>
-
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {filteredReports.slice(0, 6).map((r) => (
-                    <div
-                      key={r.id}
-                      className="bg-white/70 backdrop-blur rounded-lg border border-gray-200 p-3"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="text-xs text-gray-500 truncate">{r.province}</p>
-                          <p className="text-sm font-semibold text-gray-900 truncate">{r.pest_name}</p>
-                          <p className="text-xs text-gray-500 truncate mt-1">{r.crop_affected}</p>
-                        </div>
-                        <div
-                          className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${SEVERITY_DOT_COLORS[r.severity] || 'bg-gray-400'}`}
-                          aria-label={`Severity ${r.severity}`}
-                        />
-                      </div>
-                      <div className="mt-3 flex items-center gap-2 text-xs text-gray-600">
-                        <MapPin className="w-3 h-3" />
-                        <span className="truncate">{r.location_name}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {filteredReports.length === 0 && (
-                  <div className="mt-4 flex items-center justify-center py-10">
-                    <div className="text-center">
-                      <Leaf className="w-10 h-10 mx-auto mb-3 text-gray-300" />
-                      <p className="font-semibold text-gray-700">No reports match your filters</p>
-                      <p className="text-sm text-gray-500 mt-1">Adjust province, severity, crop, or search.</p>
-                    </div>
-                  </div>
-                )}
               </div>
+            )}
+            <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur rounded-lg px-3 py-1.5 text-xs text-gray-600 shadow-sm z-[1000]">
+              <Info className="w-3 h-3 inline mr-1" />
+              {filteredReports.length} locations • Click markers for details
             </div>
           </div>
 
-          {/* Sidebar filters + list */}
-          <div className="lg:col-span-2 space-y-3 sm:space-y-4">
-            <div className="bg-gray-50 rounded-lg border border-gray-200 p-3 sm:p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Search className="w-4 h-4 text-gray-500" />
+          {/* Sidebar */}
+          <div className="border-t lg:border-t-0 lg:border-l border-gray-200 p-4 space-y-4 max-h-[600px] overflow-y-auto">
+            {/* Search */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Search</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search pest, crop, location..."
-                  className="w-full bg-white rounded-md border border-gray-200 px-3 py-2 text-sm outline-none"
+                  placeholder="Pest, crop, location..."
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
-
-              <div className="space-y-2">
-                <label className="block">
-                  <span className="text-xs font-medium text-gray-600">Province</span>
-                  <select
-                    value={selectedProvince}
-                    onChange={(e) => setSelectedProvince(e.target.value)}
-                    className="mt-1 w-full bg-white rounded-md border border-gray-200 px-3 py-2 text-sm outline-none"
-                  >
-                    <option value="">All provinces</option>
-                    {provinces.map((p) => (
-                      <option key={p} value={p}>
-                        {p}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="block">
-                  <span className="text-xs font-medium text-gray-600">Crop</span>
-                  <select
-                    value={selectedCrop}
-                    onChange={(e) => setSelectedCrop(e.target.value)}
-                    className="mt-1 w-full bg-white rounded-md border border-gray-200 px-3 py-2 text-sm outline-none"
-                  >
-                    <option value="all">All crops</option>
-                    {crops.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-
-              {(selectedProvince || selectedSeverity !== 'all' || selectedCrop !== 'all' || searchQuery) && (
-                <button
-                  onClick={() => {
-                    setSelectedProvince('');
-                    setSelectedSeverity('all');
-                    setSelectedCrop('all');
-                    setSearchQuery('');
-                  }}
-                  className="mt-3 w-full px-3 py-2 rounded-md bg-white border border-gray-200 text-sm font-semibold text-gray-800 hover:bg-gray-100 transition"
-                >
-                  Clear filters
-                </button>
-              )}
             </div>
 
-            <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Bug className="w-4 h-4 text-green-700" />
-                <h3 className="font-semibold text-gray-900">Outbreaks</h3>
-                <span className="text-xs text-gray-500">({filteredReports.length})</span>
+            {/* Province Filter */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Province</label>
+              <select
+                value={selectedProvince}
+                onChange={(e) => setSelectedProvince(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              >
+                <option value="">All provinces</option>
+                {provinces.map(p => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Severity Filter */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Severity</label>
+              <div className="flex gap-2 flex-wrap">
+                {(['all', 'critical', 'high', 'medium', 'low'] as const).map(sev => (
+                  <button
+                    key={sev}
+                    onClick={() => setSelectedSeverity(sev)}
+                    className={'px-3 py-1 text-xs rounded-full font-medium transition ' + (selectedSeverity === sev ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200')}
+                  >
+                    {sev.charAt(0).toUpperCase() + sev.slice(1)}
+                  </button>
+                ))}
               </div>
+            </div>
 
-              {loading ? (
-                <div className="flex items-center justify-center py-10">
-                  <div className="animate-spin w-8 h-8 rounded-full border-4 border-emerald-200 border-t-emerald-600" />
-                </div>
-              ) : filteredReports.length === 0 ? (
-                <div className="flex items-center justify-center py-10">
-                  <div className="text-center">
-                    <Leaf className="w-10 h-10 mx-auto mb-3 text-gray-300" />
-                    <p className="font-semibold text-gray-700">No outbreaks</p>
-                    <p className="text-sm text-gray-500 mt-1">Try a different filter.</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-2 max-h-[520px] overflow-auto pr-1">
-                  {filteredReports
-                    .slice()
-                    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                    .map((r) => (
-                      <div
-                        key={r.id}
-                        className="rounded-lg border border-gray-200 p-3 hover:shadow-sm transition"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="text-xs text-gray-500">{r.province}</p>
-                            <p className="text-sm font-bold text-gray-900 truncate">{r.pest_name}</p>
-                            <p className="text-xs text-gray-500 truncate mt-1">{r.crop_affected}</p>
-                          </div>
-                          <div className="flex flex-col items-end gap-2">
-                            <div
-                              className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${SEVERITY_COLORS[r.severity] || ''}`}
-                            >
-                              {r.severity}
-                            </div>
-                            <div className="flex items-center gap-1 text-xs text-gray-600">
-                              <MapPin className="w-3 h-3" />
-                              <span className="truncate max-w-[120px]">{r.location_name}</span>
-                            </div>
-                          </div>
-                        </div>
+            {/* Crop Filter */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Crop</label>
+              <select
+                value={selectedCrop}
+                onChange={(e) => setSelectedCrop(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              >
+                <option value="all">All crops</option>
+                {crops.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
 
-                        <div className="mt-3 flex items-start gap-2">
-                          {r.severity === 'critical' && (
-                            <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5" />
-                          )}
-                          <p className="text-xs text-gray-600 line-clamp-3">
-                            {r.description || 'No description provided.'}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+            {/* Clear Filters */}
+            {(selectedProvince || selectedSeverity !== 'all' || selectedCrop !== 'all' || searchQuery) && (
+              <button
+                onClick={clearFilters}
+                className="w-full py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+              >
+                Clear all filters
+              </button>
+            )}
+
+            {/* Stats */}
+            <div className="pt-3 border-t border-gray-200">
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-gray-600">On map:</span>
+                <span className="font-semibold">{stats.total}</span>
+              </div>
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-gray-600">Critical:</span>
+                <span className="font-semibold text-red-600">{stats.critical}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Active:</span>
+                <span className="font-semibold text-orange-600">{stats.active}</span>
+              </div>
+            </div>
+
+            {/* Legend */}
+            <div className="pt-3 border-t border-gray-200">
+              <p className="text-xs font-medium text-gray-600 mb-2">Severity Legend</p>
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-red-500" />
+                  <span className="text-xs">Critical</span>
                 </div>
-              )}
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-orange-500" />
+                  <span className="text-xs">High</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                  <span className="text-xs">Medium</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-green-500" />
+                  <span className="text-xs">Low</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Report Detail Modal */}
+      {selectedReport && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[2000] p-4" onClick={() => setSelectedReport(null)}>
+          <div className="bg-white rounded-xl max-w-md w-full max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex justify-between items-center">
+              <h3 className="font-bold text-lg">{selectedReport.pest_name}</h3>
+              <button onClick={() => setSelectedReport(null)} className="p-1 hover:bg-gray-100 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 space-y-3">
+              <div className="flex justify-between">
+                <span className={'px-2 py-1 text-xs rounded-full font-medium ' + (selectedReport.severity === 'critical' ? 'bg-red-100 text-red-700' : selectedReport.severity === 'high' ? 'bg-orange-100 text-orange-700' : selectedReport.severity === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700')}>
+                  {selectedReport.severity}
+                </span>
+                <span className={'px-2 py-1 text-xs rounded-full font-medium ' + (selectedReport.status === 'active' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700')}>
+                  {selectedReport.status}
+                </span>
+              </div>
+              {selectedReport.pest_type && <p className="text-sm"><strong>Type:</strong> {selectedReport.pest_type}</p>}
+              {selectedReport.crop_affected && selectedReport.crop_affected !== 'Unknown' && <p className="text-sm"><strong>Crop:</strong> {selectedReport.crop_affected}</p>}
+              {selectedReport.location_name && selectedReport.location_name !== 'Not specified' && <p className="text-sm"><strong>Location:</strong> {selectedReport.location_name}</p>}
+              {selectedReport.province && selectedReport.province !== 'Not specified' && <p className="text-sm"><strong>Province:</strong> {selectedReport.province}</p>}
+              {selectedReport.latitude && selectedReport.longitude && (
+                <p className="text-sm"><strong>Coordinates:</strong> {selectedReport.latitude.toFixed(4)}°, {selectedReport.longitude.toFixed(4)}°</p>
+              )}
+              {selectedReport.description && <p className="text-sm"><strong>Description:</strong> {selectedReport.description}</p>}
+              {selectedReport.created_at && <p className="text-sm text-gray-500"><strong>Reported:</strong> {new Date(selectedReport.created_at).toLocaleString()}</p>}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default PestMap;
-

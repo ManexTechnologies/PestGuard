@@ -69,15 +69,31 @@ CREATE TABLE IF NOT EXISTS pest_history (
 -- Knowledge base articles table
 CREATE TABLE IF NOT EXISTS knowledge_base (
     id INT PRIMARY KEY AUTO_INCREMENT,
-    title VARCHAR(255) NOT NULL,
+    pest_name VARCHAR(255) NOT NULL,
+    scientific_name VARCHAR(255),
     pest_type VARCHAR(100),
-    content LONGTEXT,
-    symptoms JSON,
+    title VARCHAR(255),
+    description LONGTEXT,
+    damage_symptoms JSON,
+    affected_crops JSON,
     prevention JSON,
     treatment JSON,
+    favorable_conditions VARCHAR(500),
+    spread_mechanism VARCHAR(500),
+    emergency_threshold VARCHAR(500),
+    symptoms_stages JSON,
+    content LONGTEXT,
+    image_url VARCHAR(500),
+    reported_by_user_id INT,
+    is_verified BOOLEAN DEFAULT FALSE,
+    verification_count INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_pest_type (pest_type)
+    INDEX idx_pest_name (pest_name),
+    INDEX idx_pest_type (pest_type),
+    INDEX idx_created_at (created_at),
+    UNIQUE KEY unique_pest (pest_name),
+    FOREIGN KEY (reported_by_user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
 -- Emergency alerts table
